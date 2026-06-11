@@ -1,0 +1,17 @@
+.DS_Store
+node_modules/
+dist/
+.temp/
+
+# Local secrets
+backend/.env
+
+# Runtime data
+backend/data/
+
+# IDE and preview artifacts
+.dbg/
+.pai/
+
+# OS / logs
+*.log

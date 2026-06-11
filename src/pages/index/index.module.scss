@@ -1,0 +1,353 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 24rpx $page-padding 48rpx;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.heroCard {
+  width: 100%;
+  max-width: $max-content-width;
+  padding: 40rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(145deg, #0f172a 0%, #1d3f91 52%, #5b8cff 100%);
+  box-shadow: $shadow-popup;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.brand {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 2rpx;
+}
+
+.title {
+  font-size: $font-size-xxl;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-invert-secondary;
+  line-height: $line-height-loose;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.card,
+.sectionCard {
+  width: 100%;
+  max-width: $max-content-width;
+  background: $color-bg-card;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-card;
+  padding: 36rpx;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.statusCard {
+  width: 100%;
+  max-width: $max-content-width;
+  padding: 32rpx 36rpx;
+  border-radius: $radius-xl;
+  background: linear-gradient(180deg, rgba(232, 241, 255, 0.9) 0%, rgba(255, 255, 255, 0.96) 100%);
+  border: 1rpx solid rgba(22, 93, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.sectionCard {
+  border: 1rpx solid rgba(22, 93, 255, 0.08);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.sectionDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.snapshotTitle {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.metaText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.detectedBox {
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  background: $color-bg-secondary;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.detectedLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.detectedValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: $line-height-normal;
+}
+
+.urlInput {
+  width: 100%;
+  min-height: 72rpx;
+  border-radius: $radius-md;
+  padding: 0 20rpx;
+  background: $color-bg-card;
+  border: 1rpx solid rgba(22, 93, 255, 0.12);
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.primaryButton,
+.secondaryButton,
+.ghostButton {
+  @include button-reset;
+  width: 100%;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+}
+
+.primaryButton {
+  height: $button-height-lg;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+
+  &:active {
+    opacity: 0.92;
+    transform: scale(0.98);
+  }
+}
+
+.secondaryButton {
+  height: $button-height-md;
+  background: $color-primary-soft;
+  color: $color-primary-dark;
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.ghostButton {
+  height: $button-height-sm;
+  background: transparent;
+  border: 1rpx solid rgba(22, 93, 255, 0.18);
+  color: $color-primary-dark;
+
+  &:active {
+    background: rgba(22, 93, 255, 0.05);
+  }
+}
+
+.progressList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.progressRow {
+  display: flex;
+  gap: $spacing-md;
+  align-items: flex-start;
+}
+
+.progressIndex {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: $radius-round;
+  background: $color-primary-soft;
+  color: $color-primary-dark;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progressBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.progressTitle {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.progressDesc,
+.bulletText,
+.timelineDesc {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-md;
+}
+
+.metricCard {
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(232, 241, 255, 0.92) 100%);
+  border: 1rpx solid rgba(22, 93, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.metricLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.metricValue {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+}
+
+.sectionSummary {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+}
+
+.statusLabel,
+.sourceLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statusValue,
+.sourceValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: $line-height-loose;
+}
+
+.sourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-md;
+}
+
+.sourceItem {
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1rpx solid rgba(22, 93, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.bulletList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.bulletRow {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: flex-start;
+}
+
+.bulletDot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  margin-top: 12rpx;
+  flex-shrink: 0;
+}
+
+.timelineList,
+.referenceList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.timelineRow,
+.referenceCard {
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  background: $color-bg-page;
+  border: 1rpx solid $color-border;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.timelineYear {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.timelineTitle {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+}

@@ -1,0 +1,39 @@
+@use '@/styles/variables.scss' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108rpx;
+  height: 48rpx;
+  padding: 0 $spacing-md;
+  border-radius: 999rpx;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+}
+
+.default {
+  background: $color-bg-secondary;
+  color: $color-text-secondary;
+}
+
+.primary {
+  background: $color-primary-soft;
+  color: $color-primary-dark;
+}
+
+.warning {
+  background: rgba(255, 125, 0, 0.12);
+  color: $color-warning;
+}
+
+.success {
+  background: rgba(0, 180, 42, 0.12);
+  color: $color-success;
+}
+
+.dark {
+  background: rgba(255, 255, 255, 0.16);
+  color: $color-text-white;
+}
