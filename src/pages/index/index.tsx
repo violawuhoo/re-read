@@ -193,6 +193,10 @@ const IndexPage: React.FC = () => {
     Taro.navigateTo({ url: `/pages/report/index?id=${report.id}` });
   };
 
+  const handleOpenMockReport = () => {
+    Taro.navigateTo({ url: '/pages/report/index?mock=1' });
+  };
+
   const handleCopyLink = async (link: string) => {
     try {
       await Taro.setClipboardData({ data: link });
@@ -259,6 +263,9 @@ const IndexPage: React.FC = () => {
           </Button>
           <Button className={styles.secondaryButton} onClick={handleSwitchReport}>
             切换另一篇样例文章
+          </Button>
+          <Button className={styles.secondaryButton} onClick={handleOpenMockReport}>
+            查看模板报告
           </Button>
           <Button className={styles.ghostButton} onClick={handleOpenReport}>
             查看完整报告页

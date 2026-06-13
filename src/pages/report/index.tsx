@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Image, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import TagBadge from '@/components/TagBadge';
+import { mockTemplateReport } from '@/data/mock-report';
 import { fetchReportById } from '@/services/reread';
 import { getReportById, reportLibrary } from '@/data/report';
 import { AnalysisSection, AnalysisStep, ReferenceItem, ReportRecord, TimelineItem } from '@/types/reread';
@@ -11,7 +12,14 @@ const SECTION_ORDER = ['quality', 'hype', 'team', 'claim', 'innovation', 'bottle
 
 const ReportPage: React.FC = () => {
   const router = useRouter();
-  const fallbackReport = useMemo(() => getReportById(router.params.id) || reportLibrary[0], [router.params.id]);
+  const isMockPreview = router.params.mock === '1';
+  const fallbackReport = useMemo(() => {
+    if (isMockPreview) {
+      return mockTemplateReport;
+    }
+
+    return getReportById(router.params.id) || reportLibrary[0];
+  }, [isMockPreview, router.params.id]);
   const [report, setReport] = useState<ReportRecord>(fallbackReport);
 
   useEffect(() => {
@@ -22,7 +30,7 @@ const ReportPage: React.FC = () => {
     let isMounted = true;
 
     const loadRemoteReport = async () => {
-      if (!router.params.id) {
+      if (isMockPreview || !router.params.id) {
         return;
       }
 
@@ -39,7 +47,7 @@ const ReportPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [router.params.id]);
+  }, [isMockPreview, router.params.id]);
 
   const sectionMap = useMemo(
     () =>
@@ -87,6 +95,7 @@ const ReportPage: React.FC = () => {
         <Text className={styles.desc}>{report.subtitle}</Text>
         <View className={styles.tagRow}>
           <TagBadge label={report.articleType} tone='primary' />
+          {isMockPreview ? <TagBadge label='模板验收' tone='dark' /> : null}
           <TagBadge label={`可信度 ${report.meta.credibility}`} tone='default' />
           <TagBadge label={`夸大 ${report.meta.hypeLevel}`} tone='warning' />
           {report.meta.toVcRisk ? <TagBadge label={`To VC 风险 ${report.meta.toVcRisk}`} tone='warning' /> : null}

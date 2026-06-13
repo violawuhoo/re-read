@@ -2,6 +2,14 @@
 
 `Re-Read` 当前内置了一套最小可用后端，使用 Node 原生 `http` 模块实现，不依赖额外安装。
 
+当前版本已经接入：
+
+- 公众号链接抓取
+- `P0 -> M1 -> M2 -> M3 -> M4 -> M5` 六模块顺序调用
+- 结构化报告装配
+- 异步任务轮询
+- mock 报告本地验收脚本
+
 ## 启动
 
 ```bash
@@ -58,10 +66,11 @@ node backend/server.js
   - 未配置模型时，自动走 mock Agent
   - 配置 `REREAD_LLM_BASE_URL / REREAD_LLM_API_KEY / REREAD_LLM_MODEL` 后，默认走 OpenAI 兼容接口
   - 真实模式按 `P0 -> M1 -> M2 -> M3 -> M4 -> M5` 六个模块串行调用
-  - `M4` 在 Kimi 下会启用内建 `$web_search` 完成领域全景检索
+  - `M4` 会优先尝试联网搜索；如果当前端点不支持 `$web_search`，会自动回退到无工具模式继续执行
 - Kimi 平台分国内/国际两套域名：`.cn` key 对应 `https://api.moonshot.cn/v1`，`.ai` key 对应 `https://api.moonshot.ai/v1`
 - 豆包平台可使用 `https://ark.cn-beijing.volces.com/api/v3`
 - 模块化 Prompt 定义位于 `backend/prompts/phase1-module-prompts.js`
+- mock 样例数据位于 `backend/mock-report-sample.js`
 - 可通过 `GET /api/system/config` 检查当前后端是否已启用真实模型
 - 生产部署参考 [deploy.production.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/deploy.production.md)
 
@@ -78,9 +87,21 @@ npm run mock:report
 - 样例输入：[mock-report-sample.js](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/mock-report-sample.js)
 - 生成脚本：[generate-mock-report.js](file:///Users/violawu/Documents/trae_projects/Re-Read/scripts/generate-mock-report.js)
 - 输出文件：`.runtime-data/mock-report-preview.json`
+- 前端固定预览路由：`/pages/report/index?mock=1`
 
 也可以手动指定输出路径：
 
 ```bash
 node scripts/generate-mock-report.js ./tmp/mock-report.json
 ```
+
+## 与前端联调
+
+推荐按下面顺序联调：
+
+1. 先运行 `npm run mock:report`
+2. 在小程序首页点击 `查看模板报告`
+3. 确认 12 个 section、时间线和参考文献渲染正确
+4. 再启动后端真实链路，测试公众号链接解读
+
+如果只是验证完整报告页的展示，不需要先启动模型。

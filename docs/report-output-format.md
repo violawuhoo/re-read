@@ -6,6 +6,19 @@
 
 用途：固定第一阶段最终报告的字段结构、章节顺序、映射规则与验收标准，供后端 `report-engine.js`、前端完整报告页和联调用例共同遵循。
 
+## 本地验收入口
+
+当前项目已经提供两种模板验收方式：
+
+- 后端生成 mock 报告：`npm run mock:report`
+- 前端固定预览路由：`/pages/report/index?mock=1`
+
+其中：
+
+- `npm run mock:report` 会生成 `.runtime-data/mock-report-preview.json`
+- `mock=1` 页面直接读取 `src/data/mock-report.ts`
+- 两者都应遵循本文档定义的同一份 `ReportRecord` 结构
+
 ## 总体约束
 
 - 最终产物是一个 `ReportRecord`
