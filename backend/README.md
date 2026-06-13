@@ -54,12 +54,33 @@ node backend/server.js
 ## 说明
 
 - 这是当前版本的后端 MVP，用于承接小程序前端联调。
-- 生成的报告会持久化到 `backend/data/generated-reports.json`
 - 当前已经内置 `SOP Agent` 适配层：
   - 未配置模型时，自动走 mock Agent
-  - 配置 `REREAD_LLM_BASE_URL / REREAD_LLM_API_KEY / REREAD_LLM_MODEL` 后，可走 OpenAI 兼容接口
-  - 默认 `.env.example` 已按 `Kimi / Moonshot` 方案提供示例
-- 核心提示词位于 `backend/prompts/sop-system-prompt.md`
+  - 配置 `REREAD_LLM_BASE_URL / REREAD_LLM_API_KEY / REREAD_LLM_MODEL` 后，默认走 OpenAI 兼容接口
+  - 真实模式按 `P0 -> M1 -> M2 -> M3 -> M4 -> M5` 六个模块串行调用
+  - `M4` 在 Kimi 下会启用内建 `$web_search` 完成领域全景检索
+- Kimi 平台分国内/国际两套域名：`.cn` key 对应 `https://api.moonshot.cn/v1`，`.ai` key 对应 `https://api.moonshot.ai/v1`
+- 豆包平台可使用 `https://ark.cn-beijing.volces.com/api/v3`
+- 模块化 Prompt 定义位于 `backend/prompts/phase1-module-prompts.js`
 - 可通过 `GET /api/system/config` 检查当前后端是否已启用真实模型
-- 下一步可以把当前适配层继续替换成真实公众号解析、溯源与数据库存储逻辑。
 - 生产部署参考 [deploy.production.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/deploy.production.md)
+
+## 零 Token 报告验收
+
+如果只是验证最终报告格式、`sections` 顺序、`timeline/references/tags` 映射，不想消耗模型 token，可以直接运行：
+
+```bash
+npm run mock:report
+```
+
+默认会使用：
+
+- 样例输入：[mock-report-sample.js](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/mock-report-sample.js)
+- 生成脚本：[generate-mock-report.js](file:///Users/violawu/Documents/trae_projects/Re-Read/scripts/generate-mock-report.js)
+- 输出文件：`.runtime-data/mock-report-preview.json`
+
+也可以手动指定输出路径：
+
+```bash
+node scripts/generate-mock-report.js ./tmp/mock-report.json
+```

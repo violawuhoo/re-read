@@ -8,6 +8,7 @@ backend/.env
 
 # Runtime data
 backend/data/
+.runtime-data/
 
 # IDE and preview artifacts
 .dbg/

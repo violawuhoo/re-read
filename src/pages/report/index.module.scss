@@ -21,9 +21,21 @@
   gap: $spacing-md;
 }
 
+.grid,
+.metricsGrid,
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .cover {
   width: 100%;
-  max-width: 100%;
   height: 320rpx;
   border-radius: 24rpx;
 }
@@ -50,7 +62,10 @@
   gap: $spacing-sm;
 }
 
+.metricCard,
+.stepCard,
 .sectionCard,
+.timelineCard,
 .referenceCard {
   padding: $spacing-md;
   border-radius: $radius-lg;
@@ -61,10 +76,37 @@
   gap: $spacing-sm;
 }
 
+.metricLabel,
+.timelineYear {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.metricValue,
+.stepTitle,
 .sectionTitle {
   font-size: $font-size-md;
   color: $color-text-primary;
   font-weight: $font-weight-semibold;
+}
+
+.referenceTitle,
+.timelineTitle,
+.highlightText {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.highlightText {
+  color: $color-primary-dark;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm;
 }
 
 .bulletRow {
@@ -80,6 +122,11 @@
   background: $color-primary;
   margin-top: 12rpx;
   flex-shrink: 0;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
 }
 
 .actionButton {

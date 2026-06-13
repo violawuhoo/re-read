@@ -52,6 +52,10 @@ const detectProvider = (baseUrl = '') => {
     return 'deepseek';
   }
 
+  if (lowerUrl.includes('volcengine') || lowerUrl.includes('doubao') || lowerUrl.includes('ark')) {
+    return 'doubao';
+  }
+
   return 'openai-compatible';
 };
 
@@ -62,7 +66,11 @@ const resolveModel = (provider, model) => {
   }
 
   if (provider === 'kimi') {
-    return 'moonshot-v1-32k';
+    return 'kimi-k2.6';
+  }
+
+  if (provider === 'doubao') {
+    return 'doubao-seed-2.0-pro';
   }
 
   return '';

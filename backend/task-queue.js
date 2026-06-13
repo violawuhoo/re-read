@@ -35,7 +35,7 @@ const createAnalysisTask = ({ payload, onCompleted }) => {
 
       updateTask({
         status: 'running',
-        progress: 15,
+        progress: 10,
         stage: '内容预判',
         message: '正在识别文章类型与内容价值'
       });
@@ -44,90 +44,37 @@ const createAnalysisTask = ({ payload, onCompleted }) => {
 
       if (payload.articleUrl && !payload.content) {
         updateTask({
-          progress: 35,
+          progress: 20,
           stage: '正文抓取',
           message: '正在根据公众号链接抓取正文'
         });
 
         resolvedPayload = await resolveArticlePayload(payload);
-        // #region debug-point E:resolved-article
-        fetch('http://127.0.0.1:7777/event', {
-          method: 'POST',
-          body: JSON.stringify({
-            sessionId: 'wechat-link-analysis',
-            runId: 'pre-fix',
-            hypothesisId: 'E',
-            location: 'backend/task-queue.js:resolvedPayload',
-            msg: '[DEBUG] backend resolved article payload',
-            data: {
-              articleUrl: resolvedPayload.articleUrl,
-              title: resolvedPayload.resolvedTitle,
-              sourceName: resolvedPayload.resolvedSourceName,
-              publishDate: resolvedPayload.resolvedPublishDate,
-              contentLength: resolvedPayload.content?.length || 0
-            },
-            ts: Date.now()
-          })
-        }).catch(() => {});
-        // #endregion
       }
 
       updateTask({
-        progress: 45,
-        stage: '一手材料溯源',
-        message: '正在模拟 Step 0 与公众号质量核查'
+        progress: 25,
+        stage: '公众号质量评估',
+        message: '公众号质量评估'
       });
 
-      const agentResult = await runSopAgent(resolvedPayload);
-      // #region debug-point F:agent-result
-      fetch('http://127.0.0.1:7777/event', {
-        method: 'POST',
-        body: JSON.stringify({
-          sessionId: 'wechat-link-analysis',
-          runId: 'pre-fix',
-          hypothesisId: 'F',
-          location: 'backend/task-queue.js:agentResult',
-          msg: '[DEBUG] backend received agent result',
-          data: {
-            adapter: agentResult.adapter,
-            articleType: agentResult.articleType,
-            reportStatus: agentResult.reportStatus,
-            signals: agentResult.signals
-          },
-          ts: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion
+      const agentResult = await runSopAgent(resolvedPayload, (stage, progress) => {
+        updateTask({
+          progress,
+          stage,
+          message: stage
+        });
+      });
 
       updateTask({
-        progress: 75,
-        stage: 'SOP 解读',
-        message: `正在生成结构化报告：${agentResult.signals.join('；')}`
+        progress: 95,
+        stage: '整合报告',
+        message: `正在生成结构化报告：${(agentResult.signals || ['模块执行中']).join('；')}`
       });
 
       await new Promise((resolve) => setTimeout(resolve, 400));
 
       const report = buildReportFromPayload(resolvedPayload, agentResult);
-      // #region debug-point G:report-built
-      fetch('http://127.0.0.1:7777/event', {
-        method: 'POST',
-        body: JSON.stringify({
-          sessionId: 'wechat-link-analysis',
-          runId: 'pre-fix',
-          hypothesisId: 'G',
-          location: 'backend/task-queue.js:reportBuilt',
-          msg: '[DEBUG] backend built report',
-          data: {
-            reportId: report.id,
-            title: report.title,
-            sourceName: report.articleSnapshot?.sourceName,
-            articleUrl: report.articleSnapshot?.articleUrl,
-            highlight: report.sections?.[0]?.highlight
-          },
-          ts: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion
       onCompleted(report);
 
       updateTask({
