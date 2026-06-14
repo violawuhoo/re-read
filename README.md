@@ -9,12 +9,14 @@
 - `P0 -> M1 -> M2 -> M3 -> M4 -> M5` 六模块顺序分析链路
 - 固定 12 个 section 的完整报告页
 - 零 token 的模板报告验收入口
+- mock 模版与真实输出共用同一套报告结构
 
 ## 当前能力
 
 - 支持导入 `mp.weixin.qq.com` 公众号文章链接
 - 后端按六个模块顺序生成结构化 JSON
 - 报告输出固定遵循 [report-output-format.md](file:///Users/violawu/Documents/trae_projects/Re-Read/docs/report-output-format.md)
+- `backend/report-engine.js` 已按 `src/data/mock-report.ts` 的最终模版同步真实输出映射
 - 前端完整报告页按固定章节顺序展示：
   - `quality`
   - `hype`
@@ -124,6 +126,12 @@ npm run mock:report
 - 报告模板验收
 - 前端样式联调
 - `timeline / references / tags / subtitle` 映射检查
+
+当前三条链路已经对齐到同一份模版：
+
+- 前端固定模版：`src/data/mock-report.ts`
+- 后端 mock 样例：`backend/mock-report-sample.js`
+- 真实报告装配：`backend/report-engine.js`
 
 ## 当前推荐联调方式
 

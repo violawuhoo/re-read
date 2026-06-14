@@ -46,6 +46,7 @@ export interface OverseasWork {
   name: string;
   institution: string;
   date: string;
+  intro?: string;
   timelinePosition: string;
   solved: string;
   unsolved: string;

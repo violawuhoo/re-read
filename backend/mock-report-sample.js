@@ -135,6 +135,7 @@ const mockAgentResult = {
         name: 'Co-Scientist',
         institution: 'Google DeepMind',
         date: '2026-05',
+        intro: 'Google DeepMind 提出的多智能体科研系统，重点是让不同角色的智能体协同完成研究问题拆解、证据整合与方案生成。',
         timeline_position: '与 Robin 同期，验证 AI 科研闭环可行性',
         solved: '展示了面向药物重定位的多智能体科研工作流',
         unsolved: '没有形成稳定湿实验自动化能力',
@@ -144,6 +145,7 @@ const mockAgentResult = {
         name: 'Biomni',
         institution: 'Stanford',
         date: '2025-06',
+        intro: 'Stanford 推出的科研助手系统，核心是把多种模型和工具调用整合进同一条科研工作流。',
         timeline_position: '比 Robin 更早验证 lab-in-the-loop 的方向价值',
         solved: '把多工具调用整合进科研助手工作流',
         unsolved: '不包含真实湿实验数据回流闭环',
@@ -153,6 +155,7 @@ const mockAgentResult = {
         name: 'Virtual Lab',
         institution: 'Zou Lab',
         date: '2025-02',
+        intro: 'Zou Lab 的早期探索工作，尝试把 AI 辅助实验设计和体外验证连接成一个连续实验回路。',
         timeline_position: '更早期的实验回环探索案例',
         solved: '展示 AI 可辅助实验设计和体外验证',
         unsolved: '闭环仍依赖大量人工参与',
@@ -171,14 +174,14 @@ const mockAgentResult = {
         ref_url: 'https://example.com/internagent'
       },
       {
-        name: '晶泰科技',
-        work: 'AI 与自动化实验结合的药物研发平台',
-        timeline_position: '偏工程化与商业化平台',
+        name: 'BioMap',
+        work: '生命科学基础模型与智能体平台，强调计算侧的科研辅助与平台化能力',
+        timeline_position: '更偏计算与模型平台的一侧',
         attribute: '商业产品',
-        match_degree: '表面相关',
-        gap: '偏向自动化实验与药物筛选，不做文献驱动假设闭环',
-        commercialization: '已有商业收入与公开资本市场验证',
-        ref_url: 'https://example.com/xtalpi'
+        match_degree: '部分对标',
+        gap: '公开材料中尚未展示稳定的湿实验数据回流闭环，离端到端科研闭环还有距离',
+        commercialization: '已有平台化合作与产业落地',
+        ref_url: 'https://example.com/biomap'
       }
     ]
   },

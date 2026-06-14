@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '@/styles/variables.scss' as *;
 
 .badge {
@@ -11,29 +12,31 @@
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
   white-space: nowrap;
+  line-height: 1.4;
+  box-shadow: 0 2rpx 8rpx rgba(141, 107, 22, 0.04);
 }
 
 .default {
-  background: $color-bg-secondary;
+  background: rgba($color-primary, 0.08);
   color: $color-text-secondary;
 }
 
 .primary {
-  background: $color-primary-soft;
+  background: rgba($color-primary, 0.16);
   color: $color-primary-dark;
 }
 
 .warning {
-  background: rgba(255, 125, 0, 0.12);
-  color: $color-warning;
+  background: rgba($color-primary, 0.22);
+  color: color.adjust($color-primary-dark, $lightness: -4%);
 }
 
 .success {
-  background: rgba(0, 180, 42, 0.12);
-  color: $color-success;
+  background: rgba($color-primary, 0.12);
+  color: $color-primary-dark;
 }
 
 .dark {
-  background: rgba(255, 255, 255, 0.16);
-  color: $color-text-white;
+  background: rgba(134, 98, 18, 0.14);
+  color: $color-primary-dark;
 }

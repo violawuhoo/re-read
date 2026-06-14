@@ -6,46 +6,84 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
+  background:
+    radial-gradient(circle at top left, rgba($color-primary, 0.08), transparent 38%),
+    linear-gradient(180deg, #fffdf7 0%, #fffaf0 100%);
 }
 
 .card {
   width: 100%;
   max-width: $max-content-width;
-  background: $color-bg-card;
+  background: rgba(255, 249, 235, 0.88);
   border-radius: $radius-xl;
-  box-shadow: $shadow-card;
+  box-shadow: 0 10rpx 28rpx rgba(141, 107, 22, 0.06);
   padding: 36rpx;
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: 20rpx;
+}
+
+.headerEyebrow {
+  font-size: 20rpx;
+  color: $color-primary-dark;
+  line-height: 1.4;
+  letter-spacing: 1.6rpx;
+  text-transform: uppercase;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.sectionTitle {
+  font-size: 28rpx;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+  line-height: 1.5;
+}
+
+.sectionCount {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: $color-primary-dark;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba($color-primary, 0.12);
+}
+
+.sectionDesc {
+  font-size: 23rpx;
+  color: $color-text-secondary;
+  line-height: 1.7;
 }
 
 .headerTitle {
-  font-size: $font-size-lg;
+  font-size: 34rpx;
   color: $color-text-primary;
   font-weight: $font-weight-semibold;
+  line-height: 1.45;
 }
 
-.headerDesc,
-.reportDesc,
-.reportMetaText {
-  font-size: $font-size-xs;
+.headerDesc {
+  font-size: 24rpx;
   color: $color-text-secondary;
-  line-height: $line-height-loose;
+  line-height: 1.75;
 }
 
 .filterRow {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-sm;
+  gap: 12rpx;
 }
 
 .filterButton,
 .actionButton {
   @include button-reset;
-  width: 100%;
   border-radius: $radius-button;
-  font-size: $font-size-sm;
+  font-size: 23rpx;
   font-weight: $font-weight-medium;
 }
 
@@ -54,40 +92,113 @@
   min-width: 132rpx;
   height: $button-height-sm;
   padding: 0 $spacing-md;
-  background: $color-bg-secondary;
+  background: rgba(255, 255, 255, 0.72);
   color: $color-text-secondary;
+  box-shadow: 0 3rpx 10rpx rgba(141, 107, 22, 0.035);
 }
 
 .filterActive {
-  background: $color-primary-soft;
+  background: rgba($color-primary, 0.18);
   color: $color-primary-dark;
 }
 
-.reportCard {
-  padding: $spacing-lg;
-  border-radius: $radius-lg;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border: 1rpx solid rgba(22, 93, 255, 0.08);
+.reportList {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: 16rpx;
+}
+
+.reportCard {
+  padding: 26rpx 28rpx;
+  border-radius: $radius-lg;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  box-shadow: 0 6rpx 18rpx rgba(141, 107, 22, 0.05);
+}
+
+.reportHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
 .reportTitle {
-  font-size: $font-size-md;
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
   color: $color-text-primary;
   font-weight: $font-weight-semibold;
-  line-height: $line-height-tight;
+  line-height: 1.55;
+}
+
+.reportMode {
+  flex-shrink: 0;
+  font-size: 21rpx;
+  color: $color-primary-dark;
+  line-height: 1.4;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba($color-primary, 0.12);
 }
 
 .tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-sm;
+  gap: 10rpx;
+}
+
+.summaryBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 18rpx 20rpx;
+  border-radius: $radius-lg;
+  background: rgba($color-primary, 0.06);
+  box-shadow: inset 0 0 0 1rpx rgba($color-primary, 0.08);
+}
+
+.summaryLabel {
+  font-size: 20rpx;
+  color: $color-primary-dark;
+  line-height: 1.4;
+  letter-spacing: 1rpx;
+}
+
+.reportDesc {
+  font-size: 24rpx;
+  color: $color-text-primary;
+  line-height: 1.75;
+}
+
+.reportFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.reportMetaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.reportMetaText {
+  font-size: 21rpx;
+  color: $color-text-secondary;
+  line-height: 1.6;
 }
 
 .actionButton {
-  height: $button-height-md;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
-  color: $color-text-white;
+  width: auto;
+  min-width: 184rpx;
+  height: 64rpx;
+  padding: 0 26rpx;
+  background: rgba($color-primary, 0.18);
+  color: $color-primary-dark;
+  box-shadow: 0 4rpx 12rpx rgba(141, 107, 22, 0.05);
 }

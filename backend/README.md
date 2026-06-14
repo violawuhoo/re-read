@@ -9,6 +9,7 @@
 - 结构化报告装配
 - 异步任务轮询
 - mock 报告本地验收脚本
+- mock 模版与真实输出统一装配规则
 
 ## 启动
 
@@ -71,6 +72,7 @@ node backend/server.js
 - 豆包平台可使用 `https://ark.cn-beijing.volces.com/api/v3`
 - 模块化 Prompt 定义位于 `backend/prompts/phase1-module-prompts.js`
 - mock 样例数据位于 `backend/mock-report-sample.js`
+- 真实报告装配逻辑位于 `backend/report-engine.js`，当前已和 `src/data/mock-report.ts` 模版对齐
 - 可通过 `GET /api/system/config` 检查当前后端是否已启用真实模型
 - 生产部署参考 [deploy.production.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/deploy.production.md)
 
@@ -88,6 +90,12 @@ npm run mock:report
 - 生成脚本：[generate-mock-report.js](file:///Users/violawu/Documents/trae_projects/Re-Read/scripts/generate-mock-report.js)
 - 输出文件：`.runtime-data/mock-report-preview.json`
 - 前端固定预览路由：`/pages/report/index?mock=1`
+
+当前以下三处已经同步为同一套正式报告格式：
+
+- 前端模板：`src/data/mock-report.ts`
+- 后端 mock 样例：`backend/mock-report-sample.js`
+- 真实报告生成：`backend/report-engine.js`
 
 也可以手动指定输出路径：
 
