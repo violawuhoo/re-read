@@ -6,6 +6,67 @@ import { AnalysisTaskRecord, ReportRecord } from '@/types/reread';
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const DEFAULT_SOURCE_NAME = '公众号链接导入';
 
+class BackendRequestError extends Error {
+  statusCode?: number;
+  errorCode?: string;
+  shouldFallback: boolean;
+
+  constructor(message: string, options: { statusCode?: number; errorCode?: string; shouldFallback?: boolean } = {}) {
+    super(message);
+    this.name = 'BackendRequestError';
+    this.statusCode = options.statusCode;
+    this.errorCode = options.errorCode;
+    this.shouldFallback = options.shouldFallback || false;
+  }
+}
+
+const readBackendError = (payload: unknown): { message?: string; errorCode?: string } => {
+  if (!payload || typeof payload !== 'object') {
+    return {};
+  }
+
+  const maybePayload = payload as { message?: unknown; errorCode?: unknown };
+  return {
+    message: typeof maybePayload.message === 'string' ? maybePayload.message : undefined,
+    errorCode: typeof maybePayload.errorCode === 'string' ? maybePayload.errorCode : undefined
+  };
+};
+
+const getNetworkErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return '后端暂时不可达，请稍后重试';
+};
+
+const isBackendRequestError = (error: unknown): error is BackendRequestError => error instanceof BackendRequestError;
+
+const requestJson = async <T>(options: Taro.request.Option): Promise<T> => {
+  try {
+    const response = await Taro.request<T>({
+      ...options
+    });
+    const backendError = readBackendError(response.data);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.data;
+    }
+
+    throw new BackendRequestError(backendError.message || '后端请求失败，请稍后重试', {
+      statusCode: response.statusCode,
+      errorCode: backendError.errorCode
+    });
+  } catch (error) {
+    if (isBackendRequestError(error)) {
+      throw error;
+    }
+
+    throw new BackendRequestError(getNetworkErrorMessage(error), {
+      shouldFallback: true
+    });
+  }
+};
+
 export const readClipboardCandidate = async (): Promise<string> => {
   try {
     const result = await Taro.getClipboardData();
@@ -47,7 +108,7 @@ export const generateReportFromContent = async (content: string): Promise<Report
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<ReportRecord>({
+    const report = await requestJson<ReportRecord>({
       url: `${remoteBaseUrl}/api/analyze`,
       method: 'POST',
       timeout: 3000,
@@ -58,11 +119,14 @@ export const generateReportFromContent = async (content: string): Promise<Report
       })
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && response.data?.id) {
+    if (report?.id) {
       console.info('[ReReadService] remote analyze success');
-      return response.data;
+      return report;
     }
   } catch (error) {
+    if (!isBackendRequestError(error) || !error.shouldFallback) {
+      throw error;
+    }
     console.warn('[ReReadService] remote analyze unavailable, fallback to local mock', error);
   }
 
@@ -92,17 +156,20 @@ export const createAnalysisTask = async (payload: {
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<AnalysisTaskRecord>({
+    const task = await requestJson<AnalysisTaskRecord>({
       url: `${remoteBaseUrl}/api/tasks`,
       method: 'POST',
       timeout: 3000,
       data: buildAnalyzePayload(payload)
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && response.data?.taskId) {
-      return response.data;
+    if (task?.taskId) {
+      return task;
     }
   } catch (error) {
+    if (!isBackendRequestError(error) || !error.shouldFallback) {
+      throw error;
+    }
     console.warn('[ReReadService] create task failed, fallback to sync mode', error);
   }
 
@@ -115,18 +182,37 @@ export const createArticleUrlTask = async (articleUrl: string): Promise<Analysis
     sourceName: DEFAULT_SOURCE_NAME
   });
 
+export const analyzeArticleUrlSync = async (articleUrl: string): Promise<ReportRecord> => {
+  const remoteBaseUrl = getBackendBaseUrl();
+  const report = await requestJson<ReportRecord>({
+    url: `${remoteBaseUrl}/api/analyze`,
+    method: 'POST',
+    timeout: 12000,
+    data: buildAnalyzePayload({
+      articleUrl: normalizeArticleUrl(articleUrl),
+      sourceName: DEFAULT_SOURCE_NAME
+    })
+  });
+
+  if (!report?.id) {
+    throw new BackendRequestError('报告生成失败，请稍后重试');
+  }
+
+  return report;
+};
+
 export const pollAnalysisTask = async (taskId: string): Promise<AnalysisTaskRecord | null> => {
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<AnalysisTaskRecord>({
+    const task = await requestJson<AnalysisTaskRecord>({
       url: `${remoteBaseUrl}/api/tasks/${taskId}`,
       method: 'GET',
       timeout: 2500
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && response.data?.taskId) {
-      return response.data;
+    if (task?.taskId) {
+      return task;
     }
   } catch (error) {
     console.warn('[ReReadService] poll task failed', error);
@@ -139,14 +225,14 @@ export const fetchReportById = async (reportId: string): Promise<ReportRecord | 
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<ReportRecord>({
+    const report = await requestJson<ReportRecord>({
       url: `${remoteBaseUrl}/api/reports/${reportId}`,
       method: 'GET',
       timeout: 2500
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && response.data?.id) {
-      return response.data;
+    if (report?.id) {
+      return report;
     }
   } catch (error) {
     console.warn('[ReReadService] fetch report failed', error);
@@ -159,14 +245,14 @@ export const fetchReports = async (): Promise<ReportRecord[] | null> => {
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<{ items: ReportRecord[] }>({
+    const payload = await requestJson<{ items: ReportRecord[] }>({
       url: `${remoteBaseUrl}/api/reports`,
       method: 'GET',
       timeout: 2500
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && Array.isArray(response.data?.items)) {
-      return response.data.items;
+    if (Array.isArray(payload?.items)) {
+      return payload.items;
     }
   } catch (error) {
     console.warn('[ReReadService] fetch reports failed', error);
@@ -187,7 +273,7 @@ export const checkBackendHealth = async (): Promise<{
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<{
+    const payload = await requestJson<{
       ok: boolean;
       service: string;
       reports: number;
@@ -198,15 +284,15 @@ export const checkBackendHealth = async (): Promise<{
       timeout: 2500
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && response.data?.ok) {
+    if (payload?.ok) {
       return {
         ok: true,
-        service: response.data.service,
-        reports: response.data.reports,
+        service: payload.service,
+        reports: payload.reports,
         baseUrl: remoteBaseUrl,
-        llmEnabled: response.data.llm?.enabled,
-        llmModel: response.data.llm?.model,
-        llmProvider: response.data.llm?.provider
+        llmEnabled: payload.llm?.enabled,
+        llmModel: payload.llm?.model,
+        llmProvider: payload.llm?.provider
       };
     }
   } catch (error) {
@@ -231,7 +317,7 @@ export const getBackendRuntimeConfig = async (): Promise<{
   const remoteBaseUrl = getBackendBaseUrl();
 
   try {
-    const response = await Taro.request<{
+    const payload = await requestJson<{
       service: string;
       backend: { host: string; port: number; storeFile: string };
       llm: { enabled: boolean; model: string; baseUrl: string; provider: string; apiKeyConfigured: boolean };
@@ -241,15 +327,15 @@ export const getBackendRuntimeConfig = async (): Promise<{
       timeout: 2500
     });
 
-    if (response.statusCode >= 200 && response.statusCode < 300 && response.data?.backend) {
+    if (payload?.backend) {
       return {
         ok: true,
-        backendHost: response.data.backend.host,
-        backendPort: response.data.backend.port,
-        llmEnabled: response.data.llm?.enabled,
-        llmModel: response.data.llm?.model,
-        llmBaseUrl: response.data.llm?.baseUrl,
-        llmProvider: response.data.llm?.provider
+        backendHost: payload.backend.host,
+        backendPort: payload.backend.port,
+        llmEnabled: payload.llm?.enabled,
+        llmModel: payload.llm?.model,
+        llmBaseUrl: payload.llm?.baseUrl,
+        llmProvider: payload.llm?.provider
       };
     }
   } catch (error) {

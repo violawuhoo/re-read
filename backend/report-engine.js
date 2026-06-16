@@ -21,6 +21,22 @@ const asYesNo = (value) => (value ? '是' : '否');
 const joinMaterial = (...items) => unique(items).join(' · ');
 const stripIssuePrefix = (value = '') => value.replace(/^[A-Z]/, '');
 const safeText = (value, fallback = '待判断') => value || fallback;
+const normalizeRiskLevel = (value, fallback = '中') => {
+  const normalized = String(value || '').trim();
+  if (['高', '中', '低'].includes(normalized)) {
+    return normalized;
+  }
+  if (['高风险', '较高'].includes(normalized)) {
+    return '高';
+  }
+  if (['中等', '一般', '中风险'].includes(normalized)) {
+    return '中';
+  }
+  if (['低风险', '较低'].includes(normalized)) {
+    return '低';
+  }
+  return fallback;
+};
 const splitSentences = (value = '') =>
   value
     .split(/[。！？；\n]/)
@@ -34,7 +50,7 @@ const buildClaimBullets = (coreClaim = '', limitations = []) => {
 };
 const formatBreakthroughLabel = (degree = '') => {
   if (degree === '部分缓解') {
-    return '验证了闭环可行性';
+    return '关键瓶颈被部分缓解';
   }
   if (degree === '完全解决') {
     return '核心瓶颈已被实质性解决';
@@ -46,7 +62,7 @@ const formatBreakthroughLabel = (degree = '') => {
 };
 const formatIndustrialStage = (phase = '') => {
   if (phase === '商业化期') {
-    return '早期平台化窗口';
+    return '商业化窗口已打开';
   }
   if (phase === '产品期') {
     return '产品化验证窗口';
@@ -60,7 +76,8 @@ const formatIndustrialStage = (phase = '') => {
   return '待判断';
 };
 const buildQualityConclusion = (m1 = {}) => {
-  if (m1.recommend_original && m1.exaggeration_level === '低') {
+  const hypeLevel = normalizeRiskLevel(m1.exaggeration_level);
+  if (m1.recommend_original && hypeLevel === '低') {
     return '结论：这篇公众号可以作为快速导读，也可直接作为进入原文前的参考。';
   }
   if (m1.recommend_original) {
@@ -68,11 +85,26 @@ const buildQualityConclusion = (m1 = {}) => {
   }
   return '结论：这篇公众号更适合作为线索提示，关键结论仍需回到原文核对。';
 };
+const buildQualitySummary = (m1 = {}) => {
+  const credibility = normalizeRiskLevel(m1.credibility);
+  const hypeLevel = normalizeRiskLevel(m1.exaggeration_level);
+  if (credibility === '高' && hypeLevel === '低') {
+    return '信息源相对可靠，公众号表述与原文基本一致，可以作为进入原文前的快速导读。';
+  }
+  if (hypeLevel === '高') {
+    return '标题或结论外推较多，这篇公众号更适合作为线索入口，不适合直接当作结论。';
+  }
+  if (hypeLevel === '中') {
+    return '信息整体可读，但标题或结论存在外推，关键判断仍需回到原文核对。';
+  }
+  return '信息整体可读，适合先建立判断框架，再回到原文做进一步核验。';
+};
 const buildQualityBoundary = (m1 = {}) => {
-  if (m1.exaggeration_level === '高') {
+  const hypeLevel = normalizeRiskLevel(m1.exaggeration_level);
+  if (hypeLevel === '高') {
     return '边界：标题和结论外推较多，不能直接据此下判断。';
   }
-  if (m1.exaggeration_level === '中') {
+  if (hypeLevel === '中') {
     return '边界：涉及结论外推或局限省略，仍必须回到原文核对。';
   }
   return '边界：未发现明显夸大，但投资判断仍应结合原文与领域对比。';
@@ -119,6 +151,80 @@ const buildReferences = (payload = {}, structuredM4 = {}, fallbackTitle = '') =>
     ...item
   }));
 };
+const createStructuredReportSkeleton = () => ({
+  id: 'reread-report',
+  title: '公众号文章解读',
+  subtitle: '判断：待补充',
+  coreClaim: '',
+  account: '公众号链接导入',
+  cover: 'https://picsum.photos/id/119/750/500',
+  articleType: 'A类',
+  mode: '标准解读',
+  generatedAt: '',
+  status: '已完成 SOP 六模块分析',
+  tags: [],
+  meta: {
+    credibility: '中',
+    hypeLevel: '中',
+    innovationType: '待判断',
+    trl: '',
+    industrialWindow: '待判断'
+  },
+  articleSnapshot: {
+    sourceName: '公众号链接导入',
+    sourceAuthor: '未识别',
+    publishDate: '',
+    articleUrl: '',
+    originalMaterial: '公众号原文'
+  },
+  pipeline: [],
+  timeline: [],
+  sections: [],
+  references: [],
+  coreInnovation: {
+    type: '',
+    description: '',
+    searchKeywords: []
+  },
+  bottleneck: {
+    description: '',
+    whyUnsolved: '',
+    nextBottleneck: ''
+  },
+  productization: {
+    dataBarrier: {
+      level: '',
+      benchmark: ''
+    },
+    computeCost: {
+      level: '',
+      benchmark: ''
+    },
+    engineeringGap: {
+      level: '',
+      note: ''
+    },
+    regulation: {
+      level: '',
+      benchmark: ''
+    }
+  },
+  overseasWorks: [],
+  chinaTeams: [],
+  opportunities: [],
+  investmentSignals: [],
+  hyperDetail: {
+    issues: []
+  },
+  teamDetail: {
+    leadAuthor: '',
+    institution: '',
+    relatedCompany: null,
+    fundingInfo: null,
+    chinaConnection: null,
+    commercialIntent: ''
+  }
+});
 
 const buildDynamicSections = (payload, agentResult) => {
   const { p0 = {}, m1 = {}, m2 = {}, m3 = {}, m4 = {}, m5 = {} } = agentResult;
@@ -127,33 +233,36 @@ const buildDynamicSections = (payload, agentResult) => {
   const chinaTeams = (m4.china_teams || []).filter((item) => item.match_degree !== '表面相关');
   const opportunities = m5.opportunities || [];
   const signals = m5.signals || [];
+  const credibility = normalizeRiskLevel(m1.credibility);
+  const hypeLevel = normalizeRiskLevel(m1.exaggeration_level);
+  const industrialStage = formatIndustrialStage(m5.field_stage?.phase);
 
   sections.push({
     key: 'quality',
     title: '公众号质量评估',
-    summary: m1.summary || '已完成公众号质量评估。',
+    summary: m1.summary || buildQualitySummary(m1),
     bullets: [
       buildQualityConclusion(m1),
       `作者背景：${safeText(m1.author_background, '未知')}`,
       `证据：${m1.interest_conflict ? '存在利益相关，需要谨慎解读' : '未发现直接利益相关'}；建议参考原文：${asYesNo(m1.recommend_original)}`,
       buildQualityBoundary(m1)
     ],
-    tone: m1.credibility === '低' ? 'warning' : 'info',
-    highlight: `可信度：${m1.credibility || '中'}`
+    tone: credibility === '低' ? 'warning' : 'info',
+    highlight: `可信度：${credibility}`
   });
 
   sections.push({
     key: 'hype',
     title: '夸大检测',
     summary:
-      m1.exaggeration_level === '高'
+      hypeLevel === '高'
         ? '主要问题集中在结论外推和局限省略，建议逐条对照原文核查。'
-        : m1.exaggeration_level === '中'
+        : hypeLevel === '中'
           ? '主要问题在于标题或结论外推，关键信息边界需要回到原文确认。'
           : '未发现明显夸大，公众号表述与原文基本一致。',
     bullets: [],
-    tone: ['高', '中'].includes(m1.exaggeration_level) ? 'warning' : 'default',
-    highlight: `夸大程度：${m1.exaggeration_level || '中'}；建议参考原文：${asYesNo(m1.recommend_original)}`
+    tone: ['高', '中'].includes(hypeLevel) ? 'warning' : 'default',
+    highlight: `夸大程度：${hypeLevel}；建议参考原文：${asYesNo(m1.recommend_original)}`
   });
 
   sections.push({
@@ -206,7 +315,10 @@ const buildDynamicSections = (payload, agentResult) => {
   sections.push({
     key: 'industrial',
     title: '产业化可行性',
-    summary: `研究能力已经被证明，但距离稳定的平台化交付仍有明显工程距离，现阶段更接近${formatIndustrialStage(m5.field_stage?.phase)}。`,
+    summary:
+      industrialStage === '待判断'
+        ? '当前已完成产业化可行性判断，重点是识别数据、工程化和落地约束。'
+        : `当前更接近${industrialStage}，重点是验证产品交付、工程化能力和落地约束。`,
     bullets: [
       `数据壁垒：${productization.data_barrier?.level || '待判断'}；${productization.data_barrier?.benchmark || '待补充'}`,
       `算力成本：${productization.compute_cost?.level || '待判断'}；${productization.compute_cost?.benchmark || '待补充'}`,
@@ -216,7 +328,7 @@ const buildDynamicSections = (payload, agentResult) => {
       `应用层商业化：${m3.trl?.time_window?.application_layer || '待判断'}`
     ],
     tone: 'info',
-    highlight: `当前阶段：${formatIndustrialStage(m5.field_stage?.phase)}`
+    highlight: `当前阶段：${industrialStage}`
   });
 
   sections.push({
@@ -229,14 +341,14 @@ const buildDynamicSections = (payload, agentResult) => {
   sections.push({
     key: 'overseas',
     title: '海外代表性工作',
-    summary: overseasWorks.length ? '近两年，闭环科研系统开始成为海外的核心对比方向。' : '暂未找到满足条件的海外代表性工作。',
+    summary: overseasWorks.length ? '已筛出与当前方向最相关的海外代表性工作，用来定位它在全球进展中的位置。' : '暂未找到满足条件的海外代表性工作。',
     bullets: []
   });
 
   sections.push({
     key: 'domestic',
     title: '国内研究扫描',
-    summary: chinaTeams.length ? '国内已有相关平台和框架，但公开工作仍以局部闭环为主。' : '暂未找到满足条件的国内团队。',
+    summary: chinaTeams.length ? '已筛出与当前方向相关的国内团队或产品，用来判断国内跟进位置与差距。' : '暂未找到满足条件的国内团队。',
     bullets: []
   });
 
@@ -244,8 +356,8 @@ const buildDynamicSections = (payload, agentResult) => {
     key: 'opportunity',
     title: '投资机会分析',
     summary:
-      opportunities.length && m5.field_stage?.phase
-        ? `这个方向当前更像平台层和配套层的窗口，而不是立刻出现大规模终局赢家的阶段。`
+      opportunities.length && industrialStage !== '待判断'
+        ? `当前处于${industrialStage}，更值得关注供给缺口、工程化短板和验证空白，而不是直接寻找终局赢家。`
         : '暂未形成明确的机会方向。',
     bullets: opportunities.length
       ? opportunities.map((item) => `[${item.scope}·${item.gap_type}] ${item.direction}（依据：${item.basis || '待补充'}）`)
@@ -316,9 +428,10 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
     resolvedPublishDate = '',
     originalMaterial = ''
   } = payload;
+  const isStructuredAdapter = agentResult.adapter && agentResult.adapter !== 'mock-sop-agent';
   const reportId = inferReportIdFromContent(content || agentResult.articleType || '');
   const baseReport = getReportById(reportId) || reportLibrary[0];
-  const report = clone(baseReport);
+  const report = isStructuredAdapter ? createStructuredReportSkeleton() : clone(baseReport);
   const createdAt = new Date().toISOString();
   const structuredP0 = agentResult.p0 || getModuleData(agentResult, 'P0');
   const structuredM1 = agentResult.m1 || getModuleData(agentResult, 'M1');
@@ -327,9 +440,9 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
   const structuredM4 = agentResult.m4 || getModuleData(agentResult, 'M4');
   const structuredM5 = agentResult.m5 || getModuleData(agentResult, 'M5');
 
-  report.id = `${baseReport.id}-${Date.now()}`;
+  report.id = `${isStructuredAdapter ? 'reread-report' : baseReport.id}-${Date.now()}`;
   report.generatedAt = createdAt;
-  report.status = agentResult.reportStatus || '已通过后端分析引擎生成';
+  report.status = agentResult.reportStatus || (isStructuredAdapter ? '已完成 SOP 六模块分析' : '已通过后端分析引擎生成');
   report.articleSnapshot.articleUrl = articleUrl || report.articleSnapshot.articleUrl;
   report.articleSnapshot.sourceName = resolvedSourceName || sourceName || report.articleSnapshot.sourceName;
   report.account = resolvedSourceName || sourceName || report.account;
@@ -347,29 +460,32 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
     report.articleSnapshot.originalMaterial = mergedOriginalMaterial;
   }
 
-  if (agentResult.articleType) {
-    report.articleType = agentResult.articleType;
+  if (agentResult.articleType || structuredP0?.type) {
+    report.articleType = agentResult.articleType || structuredP0.type;
   }
 
-  if (agentResult.credibility) {
-    report.meta.credibility = agentResult.credibility;
+  if (agentResult.credibility || structuredM1?.credibility) {
+    report.meta.credibility = normalizeRiskLevel(agentResult.credibility || structuredM1.credibility);
   }
 
-  if (agentResult.hypeLevel) {
-    report.meta.hypeLevel = agentResult.hypeLevel;
+  if (agentResult.hypeLevel || structuredM1?.exaggeration_level) {
+    report.meta.hypeLevel = normalizeRiskLevel(agentResult.hypeLevel || structuredM1.exaggeration_level);
   }
 
   if (agentResult.toVcRisk) {
     report.meta.toVcRisk = normalizeToVcRisk(agentResult.toVcRisk);
   }
 
-  if (agentResult.innovationType) {
-    report.meta.innovationType = agentResult.innovationType;
+  if (agentResult.innovationType || structuredM2?.innovation?.type) {
+    report.meta.innovationType = agentResult.innovationType || structuredM2.innovation.type;
   }
 
-  if (structuredM3?.trl?.score) {
+  if (structuredM3?.trl?.time_window?.tool_layer) {
     report.meta.trl = '';
     report.meta.industrialWindow = structuredM3.trl.time_window?.tool_layer || '待判断';
+  }
+
+  if (structuredM3?.breakthrough?.degree) {
     report.meta.breakthroughDegree = structuredM3.breakthrough?.degree;
   }
 
@@ -388,10 +504,12 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
   if (structuredM2?.innovation?.description) {
     report.subtitle = `判断：${structuredM2.innovation.description}`;
   } else if (content) {
-    report.subtitle = `${baseReport.subtitle} 当前导入文本长度约 ${content.length} 字。`;
+    report.subtitle = isStructuredAdapter
+      ? '判断：已基于导入内容生成正式报告，关键结论仍需结合原文继续核验。'
+      : `${baseReport.subtitle} 当前导入文本长度约 ${content.length} 字。`;
   }
 
-  if (agentResult.adapter && agentResult.adapter !== 'mock-sop-agent') {
+  if (isStructuredAdapter) {
     report.sections = buildDynamicSections(payload, agentResult);
     report.pipeline = buildStructuredPipeline(agentResult);
     report.tags = buildStructuredTags(agentResult);
@@ -420,6 +538,7 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
           searchKeywords: structuredM2.innovation.search_keywords || []
         }
       : report.coreInnovation;
+    report.coreClaim = structuredM2?.core_claim || report.coreClaim || '';
 
     report.bottleneck = structuredM3?.bottleneck
       ? {
@@ -464,14 +583,14 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
     report.chinaTeams = (structuredM4?.china_teams || [])
       .filter((item) => item.match_degree !== '表面相关')
       .map((item) => ({
-      name: item.name || '',
-      work: item.work || '',
-      timelinePosition: item.timeline_position || '',
-      attribute: item.attribute || '学术',
-      matchDegree: item.match_degree || '表面相关',
-      gap: item.gap || '',
-      commercialization: item.commercialization || null,
-      refUrl: item.ref_url || ''
+        name: item.name || '',
+        work: item.work || '',
+        timelinePosition: item.timeline_position || '',
+        attribute: item.attribute || '学术',
+        matchDegree: item.match_degree || '表面相关',
+        gap: item.gap || '',
+        commercialization: item.commercialization || null,
+        refUrl: item.ref_url || ''
       }));
 
     report.opportunities = (structuredM5?.opportunities || []).map((item) => ({

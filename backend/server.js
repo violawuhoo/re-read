@@ -4,13 +4,23 @@ const { getRuntimeConfig } = require('./config');
 const { buildReportFromPayload } = require('./report-engine');
 const { loadReports, saveReports, storeFile } = require('./storage');
 const { createAnalysisTask, getTaskById } = require('./task-queue');
-const { resolveArticlePayload } = require('./article-fetcher');
+const { resolveArticlePayload, validateArticlePayload } = require('./article-fetcher');
 const { runSopAgent } = require('./agent-adapter');
 
 const runtimeConfig = getRuntimeConfig();
 const PORT = runtimeConfig.port;
 const HOST = runtimeConfig.host;
 let generatedReports = loadReports();
+
+const findExistingReportByArticleUrl = (articleUrl = '') => {
+  if (!articleUrl) {
+    return null;
+  }
+
+  return (
+    generatedReports.find((report) => report?.articleSnapshot?.articleUrl === articleUrl && /^reread-report-/.test(report.id || '')) || null
+  );
+};
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, {
@@ -48,6 +58,11 @@ const readBody = (req) =>
 
     req.on('error', reject);
   });
+
+const serializeApiError = (error, fallbackMessage) => ({
+  message: error?.message || fallbackMessage,
+  errorCode: error?.code || 'UNKNOWN_ERROR'
+});
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -88,6 +103,7 @@ const server = http.createServer(async (req, res) => {
         id: report.id,
         title: report.title,
         subtitle: report.subtitle,
+        coreClaim: report.coreClaim,
         account: report.account,
         cover: report.cover,
         articleType: report.articleType,
@@ -134,7 +150,21 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pathname === '/api/tasks') {
     try {
-      const payload = await readBody(req);
+      const payload = validateArticlePayload(await readBody(req));
+      const existingReport = findExistingReportByArticleUrl(payload.articleUrl);
+
+      if (existingReport) {
+        sendJson(res, 202, {
+          taskId: `task_cached_${Date.now()}`,
+          status: 'completed',
+          progress: 100,
+          stage: '复用已生成报告',
+          message: '检测到相同链接的已生成报告，直接打开结果',
+          reportId: existingReport.id
+        });
+        return;
+      }
+
       const task = createAnalysisTask({
         payload,
         onCompleted: (report) => {
@@ -146,14 +176,21 @@ const server = http.createServer(async (req, res) => {
       return;
     } catch (error) {
       console.error('[Backend] create task failed', error);
-      sendJson(res, 400, { message: 'Invalid task payload' });
+      sendJson(res, 400, serializeApiError(error, 'Invalid task payload'));
       return;
     }
   }
 
   if (req.method === 'POST' && pathname === '/api/analyze') {
     try {
-      const payload = await readBody(req);
+      const payload = validateArticlePayload(await readBody(req));
+      const existingReport = findExistingReportByArticleUrl(payload.articleUrl);
+
+      if (existingReport) {
+        sendJson(res, 200, existingReport);
+        return;
+      }
+
       const resolvedPayload = await resolveArticlePayload(payload);
       const agentResult = await runSopAgent(resolvedPayload);
       const report = buildReportFromPayload(resolvedPayload, agentResult);
@@ -163,7 +200,7 @@ const server = http.createServer(async (req, res) => {
       return;
     } catch (error) {
       console.error('[Backend] analyze failed', error);
-      sendJson(res, 400, { message: 'Invalid request payload' });
+      sendJson(res, 400, serializeApiError(error, 'Invalid request payload'));
       return;
     }
   }

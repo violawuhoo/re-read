@@ -3,6 +3,24 @@ const { runSopAgent } = require('./agent-adapter');
 const { resolveArticlePayload } = require('./article-fetcher');
 
 const tasks = new Map();
+const DEBUG_ENV_PATH = '.dbg/report-loading-spinner.env';
+
+// #region debug-point A:report-task-events
+const reportDebugEvent = (hypothesisId, location, msg, data = {}) => {
+  let url = 'http://127.0.0.1:7777/event';
+  let sessionId = 'report-loading-spinner';
+  try {
+    const envText = require('fs').readFileSync(DEBUG_ENV_PATH, 'utf8');
+    url = envText.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || url;
+    sessionId = envText.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || sessionId;
+  } catch {}
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, runId: 'post-fix', hypothesisId, location, msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
+  }).catch(() => {});
+};
+// #endregion
 
 const createTaskId = () => `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -14,11 +32,24 @@ const createTaskRecord = () => ({
   message: '等待进入分析队列'
 });
 
+const serializeTaskError = (error) => ({
+  message: error?.message || '分析过程中发生错误',
+  errorCode: error?.code || 'UNKNOWN_ERROR'
+});
+
 const getTaskById = (taskId) => tasks.get(taskId);
 
 const createAnalysisTask = ({ payload, onCompleted }) => {
   const task = createTaskRecord();
   tasks.set(task.taskId, task);
+  // #region debug-point A:task-created
+  reportDebugEvent('A', 'backend/task-queue.js:createAnalysisTask', 'task created', {
+    taskId: task.taskId,
+    hasArticleUrl: Boolean(payload?.articleUrl),
+    hasContent: Boolean(payload?.content),
+    sourceName: payload?.sourceName || ''
+  });
+  // #endregion
 
   const updateTask = (partial) => {
     const nextTask = {
@@ -26,6 +57,17 @@ const createAnalysisTask = ({ payload, onCompleted }) => {
       ...partial
     };
     tasks.set(task.taskId, nextTask);
+    // #region debug-point B:task-updated
+    reportDebugEvent('B', 'backend/task-queue.js:updateTask', 'task state updated', {
+      taskId: task.taskId,
+      status: nextTask.status,
+      progress: nextTask.progress,
+      stage: nextTask.stage,
+      message: nextTask.message,
+      reportId: nextTask.reportId || null,
+      errorCode: nextTask.errorCode || null
+    });
+    // #endregion
     return nextTask;
   };
 
@@ -49,7 +91,21 @@ const createAnalysisTask = ({ payload, onCompleted }) => {
           message: '正在根据公众号链接抓取正文'
         });
 
+        // #region debug-point D:resolve-article-start
+        reportDebugEvent('D', 'backend/task-queue.js:resolveArticlePayload:start', 'resolve article payload start', {
+          taskId: task.taskId,
+          articleUrl: payload.articleUrl
+        });
+        // #endregion
         resolvedPayload = await resolveArticlePayload(payload);
+        // #region debug-point D:resolve-article-done
+        reportDebugEvent('D', 'backend/task-queue.js:resolveArticlePayload:done', 'resolve article payload done', {
+          taskId: task.taskId,
+          contentLength: resolvedPayload?.content?.length || 0,
+          resolvedSourceName: resolvedPayload?.sourceName || '',
+          resolvedTitle: resolvedPayload?.resolvedTitle || ''
+        });
+        // #endregion
       }
 
       updateTask({
@@ -65,6 +121,14 @@ const createAnalysisTask = ({ payload, onCompleted }) => {
           message: stage
         });
       });
+      // #region debug-point B:agent-finished
+      reportDebugEvent('B', 'backend/task-queue.js:runSopAgent:done', 'agent pipeline finished', {
+        taskId: task.taskId,
+        reportStatus: agentResult?.reportStatus || '',
+        signals: Array.isArray(agentResult?.signals) ? agentResult.signals.length : 0,
+        moduleErrors: agentResult?.moduleErrors || {}
+      });
+      // #endregion
 
       updateTask({
         progress: 95,
@@ -86,11 +150,20 @@ const createAnalysisTask = ({ payload, onCompleted }) => {
       });
     } catch (error) {
       console.error('[TaskQueue] task failed', error);
+      const serializedError = serializeTaskError(error);
+      // #region debug-point C:task-failed
+      reportDebugEvent('C', 'backend/task-queue.js:run:catch', 'task failed', {
+        taskId: task.taskId,
+        message: serializedError.message,
+        errorCode: serializedError.errorCode
+      });
+      // #endregion
       updateTask({
         status: 'failed',
         progress: 100,
         stage: '任务失败',
-        message: error.message || '分析过程中发生错误'
+        message: serializedError.message,
+        errorCode: serializedError.errorCode
       });
     }
   };

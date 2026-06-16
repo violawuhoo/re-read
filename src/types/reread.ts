@@ -89,6 +89,7 @@ export interface ReportRecord {
   id: string;
   title: string;
   subtitle: string;
+  coreClaim?: string;
   account: string;
   cover: string;
   articleType: ArticleType;
@@ -144,4 +145,5 @@ export interface AnalysisTaskRecord {
   stage: string;
   message: string;
   reportId?: string;
+  errorCode?: string;
 }

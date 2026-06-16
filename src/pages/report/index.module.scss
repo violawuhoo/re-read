@@ -22,10 +22,46 @@
   gap: 28rpx;
 }
 
+.statusTagRow,
+.quickActionRow,
+.referenceMain,
+.referenceList {
+  display: flex;
+}
+
+.statusTagRow,
+.quickActionRow {
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.statusTag {
+  font-size: 21rpx;
+  line-height: 1.4;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba($color-primary, 0.12);
+  color: $color-primary-dark;
+  font-weight: $font-weight-semibold;
+  width: fit-content;
+}
+
+.noticeText {
+  font-size: 23rpx;
+  line-height: 1.7;
+  color: $color-text-secondary;
+}
+
 .referenceSectionCard {
   gap: 18rpx;
   padding-top: 32rpx;
   padding-bottom: 32rpx;
+}
+
+.bottomActionCard {
+  width: 100%;
+  max-width: $max-content-width;
+  padding: 0 0 12rpx;
 }
 
 .heroCard {
@@ -111,6 +147,11 @@
   gap: 16rpx;
 }
 
+.sectionCardMuted {
+  background: linear-gradient(180deg, rgba($color-primary, 0.02) 0%, rgba($color-primary, 0.008) 100%);
+  border-style: dashed;
+}
+
 .metricLabel,
 .timelineYear {
   font-size: 22rpx;
@@ -138,6 +179,12 @@
   font-size: 26rpx;
   color: $color-text-primary;
   font-weight: $font-weight-semibold;
+}
+
+.referenceList,
+.referenceMain {
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .highlightText {
@@ -237,7 +284,8 @@
 }
 
 .emptyText {
-  font-size: $font-size-sm;
+  font-size: 22rpx;
+  line-height: 1.7;
   color: $color-text-secondary;
 }
 
@@ -504,13 +552,31 @@
   margin-top: 2rpx;
 }
 
+.quickActionRow {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
 .actionButton {
   @include button-reset;
-  width: 100%;
+  width: auto;
+  min-width: 220rpx;
   height: $button-height-sm;
   border-radius: $radius-button;
   background: $color-primary-soft;
   color: $color-primary-dark;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}
+
+.bottomPrimaryButton {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
 }

@@ -15,6 +15,36 @@ const {
 } = require('./prompts/phase1-module-prompts');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const MODULE_REQUEST_TIMEOUT_MS = 45000;
+const MODULE_RETRYABLE_STATUS = new Set([408, 409, 429, 500, 502, 503, 504]);
+let kimiWebSearchUnsupported = false;
+const DEBUG_ENV_PATH = '.dbg/report-loading-spinner.env';
+
+// #region debug-point B:agent-module-events
+const reportDebugEvent = (hypothesisId, location, msg, data = {}) => {
+  let url = 'http://127.0.0.1:7777/event';
+  let sessionId = 'report-loading-spinner';
+  try {
+    const envText = require('fs').readFileSync(DEBUG_ENV_PATH, 'utf8');
+    url = envText.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || url;
+    sessionId = envText.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || sessionId;
+  } catch {}
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, runId: 'post-fix', hypothesisId, location, msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
+  }).catch(() => {});
+};
+// #endregion
+
+const MODULE_INPUT_LIMITS = {
+  P0: 3200,
+  M1: 5200,
+  M2: 9000,
+  M3: 5500,
+  M4: 4500,
+  M5: 3200
+};
 
 const buildMockResult = ({ content = '' }) => {
   const signals = [];
@@ -121,7 +151,7 @@ const buildMockModules = ({ articleType, credibility, hypeLevel, toVcRisk, innov
       innovation: {
         type: innovationType.includes('技术') ? '技术创新' : '混合',
         description: innovationType,
-        search_keywords: ['ai4s', 'scientific discovery', 'research workflow']
+        search_keywords: ['科研流程', '科研自动化', '研究管线']
       }
     }
   },
@@ -241,6 +271,35 @@ const normalizeNullableText = (value) => {
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 const isEnglishLike = (value) => /[A-Za-z]/.test(value || '');
+const describeModuleFailure = (moduleKey, reason) => `${moduleKey} 模块降级：${reason}`;
+const trimArticleContent = (value = '', maxLength = 8000) => {
+  if (!value || value.length <= maxLength) {
+    return value;
+  }
+
+  const headLength = Math.floor(maxLength * 0.7);
+  const tailLength = maxLength - headLength;
+  return `${value.slice(0, headLength)}\n\n[中间内容已截断]\n\n${value.slice(-tailLength)}`;
+};
+
+const buildRetryInstruction = (moduleKey, errorMessage = '') => {
+  const common = '请从头重新输出一个完整、合法、可解析的 JSON 对象，不要附加解释，不要使用 markdown 代码块。';
+  const repair = /required|missing/i.test(errorMessage)
+    ? '上一次缺少必填字段，这次必须把所有必填字段补齐。'
+    : /truncated|incomplete|JSON/i.test(errorMessage)
+      ? '上一次输出被截断，这次请保证 JSON 完整，并保留关键判断与必要细节。'
+      : '上一次输出不可解析，这次请保持结构稳定、字段完整。';
+  const moduleHints = {
+    P0: 'reason 保持一句话但要写清判断依据，source_hint 没有就填 null。',
+    M1: 'issues 最多 2 条，summary 保持 1-2 句话。',
+    M2: 'limitations 最多 3 条，search_keywords 只保留 3-5 个中文短词。',
+    M3: '每个说明字段控制在一句话内，time_window 用短语。',
+    M4: 'overseas_works 输出 3-5 条，china_teams 输出 2-4 条，覆盖关键时间线位置和差距。',
+    M5: 'opportunities 最多 3 条，signals 最多 3 条，每条写清方向、依据和待验证点。'
+  };
+
+  return `${repair}${common}${moduleHints[moduleKey] || ''}`;
+};
 
 const normalizeModuleOutput = (moduleKey, data = {}) => {
   if (moduleKey === 'P0') {
@@ -306,8 +365,7 @@ const normalizeModuleOutput = (moduleKey, data = {}) => {
             ? '系统工程创新'
             : pickEnum(data.innovation?.type, ['技术创新', '应用创新', '系统工程创新', '混合'], '混合'),
         description: normalizeText(data.innovation?.description, '未提炼出创新点描述。'),
-        search_keywords:
-          normalizedKeywords.length >= 3 ? normalizedKeywords : ['scientific workflow', 'ai4s', 'research pipeline']
+        search_keywords: normalizedKeywords.length >= 3 ? normalizedKeywords : ['科研流程', '科研自动化', '研究管线']
       }
     };
   }
@@ -414,6 +472,38 @@ const normalizeModuleOutput = (moduleKey, data = {}) => {
   return data;
 };
 
+const isUsableModuleOutput = (moduleKey, data = {}) => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  if (moduleKey === 'P0') {
+    return Boolean(data.type && data.reason);
+  }
+
+  if (moduleKey === 'M1') {
+    return Boolean(data.credibility && data.summary);
+  }
+
+  if (moduleKey === 'M2') {
+    return Boolean(data.core_claim && data.innovation?.description);
+  }
+
+  if (moduleKey === 'M3') {
+    return Boolean(data.bottleneck?.description && data.breakthrough?.next_bottleneck);
+  }
+
+  if (moduleKey === 'M4') {
+    return Boolean(data.timeline?.origin && data.timeline?.this_work_position);
+  }
+
+  if (moduleKey === 'M5') {
+    return Boolean(data.field_stage?.phase && data.field_stage?.key_uncertainty);
+  }
+
+  return true;
+};
+
 const buildModuleFallback = (moduleKey, reason = '模型输出解析失败，已按保守路径兜底。') => {
   const fallbackMap = {
     P0: {
@@ -456,7 +546,7 @@ const buildModuleFallback = (moduleKey, reason = '模型输出解析失败，已
       innovation: {
         type: '混合',
         description: reason,
-        search_keywords: ['scientific workflow', 'ai4s', 'research pipeline']
+        search_keywords: ['科研流程', '科研自动化', '研究管线']
       }
     },
     M3: {
@@ -538,29 +628,60 @@ const isKimiAuthMismatch = (status, errorText) =>
 const isUnsupportedWebSearchTool = (status, errorText) =>
   status === 400 && /unknown tool type:\s*\$web_search/i.test(errorText || '');
 
-const sendChatCompletionRequest = async ({ baseUrl, body }) => {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.REREAD_LLM_API_KEY}`
-    },
-    body: JSON.stringify(body)
-  });
+const isRetryableRequestError = (error) =>
+  error?.code === 'MODULE_TIMEOUT' || error?.code === 'MODULE_NETWORK_ERROR' || MODULE_RETRYABLE_STATUS.has(error?.status);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error = new Error(`LLM request failed: ${response.status} ${errorText}`);
-    error.status = response.status;
-    error.errorText = errorText;
-    throw error;
-  }
-
-  return response.json();
+const createModuleError = (message, extra = {}) => {
+  const error = new Error(message);
+  Object.assign(error, extra);
+  return error;
 };
 
-const requestChatCompletion = async ({ messages, maxTokens, useWebSearch }) => {
+const sendChatCompletionRequest = async ({ baseUrl, body, timeoutMs = MODULE_REQUEST_TIMEOUT_MS }) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.REREAD_LLM_API_KEY}`
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw createModuleError(`LLM request failed: ${response.status} ${errorText}`, {
+        status: response.status,
+        errorText,
+        code: MODULE_RETRYABLE_STATUS.has(response.status) ? 'MODULE_HTTP_RETRYABLE' : 'MODULE_HTTP_ERROR'
+      });
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw createModuleError('模块请求超时', { code: 'MODULE_TIMEOUT' });
+    }
+
+    if (error?.status || error?.code) {
+      throw error;
+    }
+
+    throw createModuleError(`模块请求失败：${error?.message || '网络错误'}`, {
+      code: 'MODULE_NETWORK_ERROR'
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const requestChatCompletion = async ({ messages, maxTokens, useWebSearch, timeoutMs }) => {
   const runtimeConfig = getRuntimeConfig();
+  const effectiveUseWebSearch = useWebSearch && !(runtimeConfig.llm.provider === 'kimi' && kimiWebSearchUnsupported);
   const body = {
     model: runtimeConfig.llm.model,
     messages,
@@ -568,28 +689,33 @@ const requestChatCompletion = async ({ messages, maxTokens, useWebSearch }) => {
     response_format: { type: 'json_object' }
   };
 
-  if (!shouldOmitTemperature(runtimeConfig, useWebSearch)) {
+  if (!shouldOmitTemperature(runtimeConfig, effectiveUseWebSearch)) {
     body.temperature = runtimeConfig.llm.temperature;
   }
 
-  if (runtimeConfig.llm.provider === 'kimi' && useWebSearch) {
+  if (runtimeConfig.llm.provider === 'kimi' && effectiveUseWebSearch) {
     body.tools = [{ type: '$web_search' }];
   }
 
   try {
     return await sendChatCompletionRequest({
       baseUrl: runtimeConfig.llm.baseUrl,
-      body
+      body,
+      timeoutMs
     });
   } catch (error) {
-    if (useWebSearch && isUnsupportedWebSearchTool(error.status, error.errorText)) {
+    if (effectiveUseWebSearch && isUnsupportedWebSearchTool(error.status, error.errorText)) {
+      if (runtimeConfig.llm.provider === 'kimi') {
+        kimiWebSearchUnsupported = true;
+      }
       const fallbackBody = { ...body };
       delete fallbackBody.tools;
 
       console.warn('[AgentAdapter] kimi web search tool unsupported, retrying without tools');
       return sendChatCompletionRequest({
         baseUrl: runtimeConfig.llm.baseUrl,
-        body: fallbackBody
+        body: fallbackBody,
+        timeoutMs
       });
     }
 
@@ -606,44 +732,62 @@ const requestChatCompletion = async ({ messages, maxTokens, useWebSearch }) => {
 
     return sendChatCompletionRequest({
       baseUrl: alternateBaseUrl,
-      body
+      body,
+      timeoutMs
     });
   }
 };
 
 const MODULE_OPTIONS = {
-  P0: { maxTokens: 500, useWebSearch: false },
-  M1: { maxTokens: 1000, useWebSearch: false },
-  M2: { maxTokens: 1500, useWebSearch: false },
-  M3: { maxTokens: 1500, useWebSearch: false },
-  M4: { maxTokens: 3000, useWebSearch: true },
-  M5: { maxTokens: 1500, useWebSearch: false }
+  P0: { maxTokens: 1800, useWebSearch: false, timeoutMs: 35000, retries: 2 },
+  M1: { maxTokens: 2200, useWebSearch: false, timeoutMs: 45000, retries: 2 },
+  M2: { maxTokens: 2600, useWebSearch: false, timeoutMs: 50000, retries: 2 },
+  M3: { maxTokens: 1800, useWebSearch: false, timeoutMs: 50000, retries: 2 },
+  M4: { maxTokens: 3000, useWebSearch: true, timeoutMs: 75000, retries: 3 },
+  M5: { maxTokens: 1600, useWebSearch: false, timeoutMs: 65000, retries: 2 }
 };
 
 const callModule = async (moduleKey, systemPrompt, userMessage) => {
-  const { maxTokens, useWebSearch } = MODULE_OPTIONS[moduleKey] || { maxTokens: 1500, useWebSearch: false };
+  const { maxTokens, useWebSearch, timeoutMs, retries } = MODULE_OPTIONS[moduleKey] || {
+    maxTokens: 1500,
+    useWebSearch: false,
+    timeoutMs: 30000,
+    retries: 2
+  };
   const baseMessages = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userMessage }
   ];
+  let lastError = null;
 
-  try {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const messages =
-        attempt === 0
-          ? [...baseMessages]
-          : [
-              ...baseMessages,
-              {
-                role: 'user',
-                content: '上一次输出被截断或不是合法 JSON。请从头重新输出一个完整、合法、可解析的 JSON 对象，不要附加解释。'
-              }
-            ];
-      const attemptMaxTokens = attempt === 0 ? maxTokens : Math.min(maxTokens * 2, useWebSearch ? 6000 : 4000);
-      let finishReason = null;
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    const messages =
+      attempt === 0
+        ? [...baseMessages]
+        : [
+            ...baseMessages,
+            {
+              role: 'user',
+              content: buildRetryInstruction(moduleKey, lastError?.message || '')
+            }
+          ];
+    const attemptMaxTokens = attempt === 0 ? maxTokens : Math.min(maxTokens * (attempt + 1), useWebSearch ? 6000 : 4000);
+    const attemptTimeoutMs = timeoutMs + attempt * 15000;
+    let finishReason = null;
 
+    try {
+      // #region debug-point B:module-attempt-start
+      reportDebugEvent('B', 'backend/agent-adapter.js:callModule:start', 'module attempt start', {
+        moduleKey,
+        attempt: attempt + 1,
+        retries,
+        useWebSearch,
+        timeoutMs: attemptTimeoutMs,
+        maxTokens: attemptMaxTokens
+      });
+      // #endregion
       while (finishReason === null || finishReason === 'tool_calls') {
-        const data = await requestChatCompletion({ messages, maxTokens: attemptMaxTokens, useWebSearch });
+        const data = await requestChatCompletion({ messages, maxTokens: attemptMaxTokens, useWebSearch, timeoutMs: attemptTimeoutMs });
         const choice = data?.choices?.[0];
 
         if (!choice?.message) {
@@ -669,37 +813,88 @@ const callModule = async (moduleKey, systemPrompt, userMessage) => {
         }
 
         if (finishReason === 'length') {
-          if (attempt === 0) {
-            break;
-          }
-
           throw new Error('LLM response truncated before JSON completion');
         }
 
-        try {
-          const parsed = parseAgentJson(choice.message.content || '');
-          return {
-            data: normalizeModuleOutput(moduleKey, parsed),
-            error: null
-          };
-        } catch (parseError) {
-          if (attempt === 0) {
-            break;
+        const parsed = parseAgentJson(choice.message.content || '');
+        const normalized = normalizeModuleOutput(moduleKey, parsed);
+
+        if (!isUsableModuleOutput(moduleKey, parsed)) {
+          if (attempt < retries - 1) {
+            throw new Error('LLM response missing required fields');
           }
 
-          throw parseError;
+          // #region debug-point B:module-degraded-success
+          reportDebugEvent('B', 'backend/agent-adapter.js:callModule:degraded', 'module completed with degraded output', {
+            moduleKey,
+            attempt: attempt + 1,
+            finishReason
+          });
+          // #endregion
+          return {
+            data: normalized,
+            error: describeModuleFailure(moduleKey, '输出字段缺失，已按默认值补齐'),
+            degraded: true
+          };
         }
-      }
-    }
 
-    throw new Error('Module failed after retry');
-  } catch (error) {
-    console.error('[AgentAdapter] module call failed', { moduleKey, error: error.message });
-    return {
-      data: {},
-      error: error.message
-    };
+        // #region debug-point B:module-success
+        reportDebugEvent('B', 'backend/agent-adapter.js:callModule:success', 'module attempt success', {
+          moduleKey,
+          attempt: attempt + 1,
+          finishReason
+        });
+        // #endregion
+        return {
+          data: normalized,
+          error: null,
+          degraded: false
+        };
+      }
+
+      throw new Error('LLM response incomplete after retry');
+    } catch (error) {
+      lastError = error;
+      const canRetry = attempt < retries - 1 && (isRetryableRequestError(error) || /JSON|missing|required|truncated|incomplete/i.test(error.message || ''));
+      console.warn('[AgentAdapter] module attempt failed', {
+        moduleKey,
+        attempt: attempt + 1,
+        retries,
+        error: error.message,
+        willRetry: canRetry
+      });
+      // #region debug-point B:module-attempt-failed
+      reportDebugEvent('B', 'backend/agent-adapter.js:callModule:failed', 'module attempt failed', {
+        moduleKey,
+        attempt: attempt + 1,
+        retries,
+        error: error.message,
+        willRetry: canRetry
+      });
+      // #endregion
+
+      if (canRetry) {
+        await sleep(300 * (attempt + 1));
+        continue;
+      }
+      break;
+    }
   }
+
+  console.error('[AgentAdapter] module call failed', { moduleKey, error: lastError?.message });
+  const fallbackReason = describeModuleFailure(moduleKey, lastError?.message || '模块执行失败');
+  // #region debug-point B:module-fallback
+  reportDebugEvent('B', 'backend/agent-adapter.js:callModule:fallback', 'module fallback generated', {
+    moduleKey,
+    error: lastError?.message || '',
+    fallbackReason
+  });
+  // #endregion
+  return {
+    data: buildModuleFallback(moduleKey, fallbackReason),
+    error: fallbackReason,
+    degraded: true
+  };
 };
 const buildSignalsArray = (p0 = {}, m1 = {}, m2 = {}) =>
   [
@@ -716,7 +911,7 @@ const buildMissingItems = (p0 = {}, m1 = {}, moduleErrors = {}) => {
   }
 
   if (p0.type === '不支持') {
-    items.push('当前内容不属于 AI4S 领域，不建议进入完整分析');
+    items.push('当前内容不属于技术、科研或产品分析范畴，不建议进入完整分析');
   }
 
   if (m1.recommend_original === false) {
@@ -738,42 +933,67 @@ const buildModuleRecord = (moduleKey, data, error) => ({
   data: error ? buildModuleFallback(moduleKey, error) : data
 });
 
+const countModuleErrors = (moduleErrors = {}) => Object.values(moduleErrors).filter(Boolean).length;
+
 const runStructuredPipeline = async (payload, onProgress) => {
   const runtimeConfig = getRuntimeConfig();
-  const articleContent = payload.content || payload.articleUrl || '';
+  const rawArticleContent = payload.content || payload.articleUrl || '';
+  const getModuleContent = (moduleKey) => trimArticleContent(rawArticleContent, MODULE_INPUT_LIMITS[moduleKey] || 8000);
   const moduleErrors = {};
+  // #region debug-point B:pipeline-start
+  reportDebugEvent('B', 'backend/agent-adapter.js:runStructuredPipeline:start', 'structured pipeline start', {
+    provider: runtimeConfig?.llm?.provider || '',
+    model: runtimeConfig?.llm?.model || '',
+    contentLength: rawArticleContent.length
+  });
+  // #endregion
 
-  const p0Result = await callModule('P0', P0_SYSTEM_PROMPT, buildP0UserMsg(articleContent));
+  onProgress?.('内容类型识别', 30);
+  const p0Promise = callModule('P0', P0_SYSTEM_PROMPT, buildP0UserMsg(getModuleContent('P0')));
+
+  onProgress?.('公众号质量评估', 40);
+  const m1Promise = callModule('M1', M1_SYSTEM_PROMPT, buildM1UserMsg(getModuleContent('M1')));
+
+  await Promise.race([p0Promise, m1Promise]);
+  onProgress?.('公众号质量评估', 47);
+
+  const p0Result = await p0Promise;
   if (p0Result.error) {
     moduleErrors.P0 = p0Result.error;
   }
-  onProgress?.('公众号质量评估', 30);
 
-  const m1Result = await callModule('M1', M1_SYSTEM_PROMPT, buildM1UserMsg(articleContent, p0Result.data));
+  const m1Result = await m1Promise;
   if (m1Result.error) {
     moduleErrors.M1 = m1Result.error;
   }
-  onProgress?.('团队背景与创新点', 45);
 
-  const m2Result = await callModule('M2', M2_SYSTEM_PROMPT, buildM2UserMsg(articleContent, p0Result.data, m1Result.data));
+  onProgress?.('团队背景与创新点', 55);
+  const m2Result = await callModule('M2', M2_SYSTEM_PROMPT, buildM2UserMsg(getModuleContent('M2'), p0Result.data, m1Result.data));
   if (m2Result.error) {
     moduleErrors.M2 = m2Result.error;
   }
-  onProgress?.('创新点价值判断', 60);
 
-  const m3Result = await callModule('M3', M3_SYSTEM_PROMPT, buildM3UserMsg(articleContent, p0Result.data, m1Result.data, m2Result.data));
+  onProgress?.('创新点价值判断', 68);
+  const m3Promise = callModule('M3', M3_SYSTEM_PROMPT, buildM3UserMsg(getModuleContent('M3'), p0Result.data, m1Result.data, m2Result.data));
+
+  onProgress?.('领域发展全景', 80);
+  const m4Promise = callModule('M4', M4_SYSTEM_PROMPT, buildM4UserMsg(getModuleContent('M4'), p0Result.data, m2Result.data));
+
+  await Promise.race([m3Promise, m4Promise]);
+  onProgress?.('领域发展全景', 84);
+
+  const m3Result = await m3Promise;
   if (m3Result.error) {
     moduleErrors.M3 = m3Result.error;
   }
-  onProgress?.('领域发展全景', 75);
 
-  const m4Result = await callModule('M4', M4_SYSTEM_PROMPT, buildM4UserMsg(articleContent, p0Result.data, m2Result.data, m3Result.data));
+  const m4Result = await m4Promise;
   if (m4Result.error) {
     moduleErrors.M4 = m4Result.error;
   }
-  onProgress?.('投资信号提取', 88);
 
-  const m5Result = await callModule('M5', M5_SYSTEM_PROMPT, buildM5UserMsg(articleContent, m3Result.data, m4Result.data));
+  onProgress?.('投资信号提取', 90);
+  const m5Result = await callModule('M5', M5_SYSTEM_PROMPT, buildM5UserMsg(getModuleContent('M5'), m3Result.data, m4Result.data));
   if (m5Result.error) {
     moduleErrors.M5 = m5Result.error;
   }
@@ -794,6 +1014,18 @@ const runStructuredPipeline = async (payload, onProgress) => {
     M4: buildModuleRecord('M4', m4, m4Result.error),
     M5: buildModuleRecord('M5', m5, m5Result.error)
   };
+  const degradedModuleCount = countModuleErrors(moduleErrors);
+  const reportStatus =
+    degradedModuleCount > 0
+      ? `已完成 SOP 六模块分析 · ${p0.type || 'A+C混合'} · 部分模块降级(${degradedModuleCount})`
+      : `已完成 SOP 六模块分析 · ${p0.type || 'A+C混合'}`;
+  // #region debug-point B:pipeline-finished
+  reportDebugEvent('B', 'backend/agent-adapter.js:runStructuredPipeline:done', 'structured pipeline finished', {
+    degradedModuleCount,
+    moduleErrors,
+    reportStatus
+  });
+  // #endregion
 
   return {
     adapter: runtimeConfig.llm.provider,
@@ -804,7 +1036,7 @@ const runStructuredPipeline = async (payload, onProgress) => {
     hypeLevel: m1.exaggeration_level || '中',
     toVcRisk: m2.to_vc_risk?.level || '不适用',
     innovationType: m2.innovation?.type || '',
-    reportStatus: `已完成 SOP 六模块分析 · ${p0.type || '未知类型'}`,
+    reportStatus,
     signals: buildSignalsArray(p0, m1, m2),
     missingItems: buildMissingItems(p0, m1, moduleErrors),
     followups: Array.isArray(m5.signals) ? m5.signals.map((item) => item.trigger).filter(Boolean) : [],

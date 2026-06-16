@@ -20,10 +20,6 @@ export default defineAppConfig({
       {
         pagePath: 'pages/history/index',
         text: '历史'
-      },
-      {
-        pagePath: 'pages/profile/index',
-        text: '我的'
       }
     ]
   }

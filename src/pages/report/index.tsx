@@ -3,9 +3,26 @@ import { Button, Image, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { mockTemplateReport } from '@/data/mock-report';
 import { fetchReportById } from '@/services/reread';
-import { getReportById, reportLibrary } from '@/data/report';
+import { getReportById } from '@/data/report';
 import { AnalysisSection, AnalysisStep, ReferenceItem, ReportRecord, TimelineItem } from '@/types/reread';
 import styles from './index.module.scss';
+
+// #region debug-point A:report-page-debug
+const reportPageDebug = (msg: string, data: Record<string, unknown> = {}) =>
+  fetch('http://127.0.0.1:7778/event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: 'insert-before-error',
+      runId: 'pre-fix',
+      hypothesisId: 'A',
+      location: 'src/pages/report/index.tsx',
+      msg: `[DEBUG] ${msg}`,
+      data,
+      ts: Date.now()
+    })
+  }).catch(() => {});
+// #endregion
 
 const SECTION_ORDER = ['quality', 'hype', 'team', 'claim', 'innovation', 'bottleneck', 'industrial', 'timeline', 'overseas', 'domestic', 'opportunity', 'signals'];
 const SECTION_GROUPS = [
@@ -54,44 +71,159 @@ const ReportPage: React.FC = () => {
       return mockTemplateReport;
     }
 
-    return getReportById(router.params.id) || reportLibrary[0];
+    return getReportById(router.params.id) || null;
   }, [isMockPreview, router.params.id]);
-  const [report, setReport] = useState<ReportRecord>(fallbackReport);
+  const [report, setReport] = useState<ReportRecord | null>(fallbackReport);
+  const [isRemoteLoading, setIsRemoteLoading] = useState(Boolean(!isMockPreview && router.params.id && !fallbackReport));
+  const [remoteStatusMessage, setRemoteStatusMessage] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    // #region debug-point B:fallback-report-sync
+    reportPageDebug('fallback report synced', {
+      reportId: fallbackReport?.id || '',
+      title: fallbackReport?.title || '',
+      sectionCount: fallbackReport?.sections?.length || 0,
+      referenceCount: fallbackReport?.references?.length || 0,
+      isMockPreview
+    });
+    // #endregion
     setReport(fallbackReport);
-  }, [fallbackReport]);
+    setRemoteStatusMessage('');
+    setIsRemoteLoading(Boolean(!isMockPreview && router.params.id && !fallbackReport));
+  }, [fallbackReport, isMockPreview, router.params.id]);
 
   useEffect(() => {
     let isMounted = true;
 
+    // #region debug-point C:load-remote-entry
+    reportPageDebug('load remote report effect entered', {
+      isMockPreview,
+      reportId: router.params.id || '',
+      hasReportId: Boolean(router.params.id)
+    });
+    // #endregion
+
     const loadRemoteReport = async () => {
       if (isMockPreview || !router.params.id) {
+        setIsRemoteLoading(false);
         return;
       }
 
+      setIsRemoteLoading(true);
+      setRemoteStatusMessage('');
       const remoteReport = await fetchReportById(router.params.id);
       if (remoteReport && isMounted) {
+        // #region debug-point D:remote-report-loaded
+        reportPageDebug('remote report loaded', {
+          reportId: remoteReport.id,
+          title: remoteReport.title,
+          sectionCount: remoteReport.sections?.length || 0,
+          referenceCount: remoteReport.references?.length || 0,
+          pipelineCount: remoteReport.pipeline?.length || 0,
+          timelineCount: remoteReport.timeline?.length || 0,
+          overseasCount: remoteReport.overseasWorks?.length || 0,
+          domesticCount: remoteReport.chinaTeams?.length || 0,
+          opportunityCount: remoteReport.opportunities?.length || 0,
+          signalCount: remoteReport.investmentSignals?.length || 0
+        });
+        // #endregion
         setReport(remoteReport);
+        setRemoteStatusMessage('');
+        setIsRemoteLoading(false);
+        return;
       }
+
+      if (!isMounted) {
+        return;
+      }
+
+      setIsRemoteLoading(false);
+      setRemoteStatusMessage(fallbackReport ? '远端报告暂时不可达，当前展示本地缓存版本。' : '报告详情暂时不可用，请稍后重试。');
     };
 
     loadRemoteReport().catch((error) => {
       console.warn('[ReportPage] fetch remote report failed', error);
+      if (!isMounted) {
+        return;
+      }
+      setIsRemoteLoading(false);
+      setRemoteStatusMessage(fallbackReport ? '远端报告加载失败，当前展示本地缓存版本。' : '报告详情加载失败，请稍后重试。');
     });
 
     return () => {
+      // #region debug-point E:load-remote-cleanup
+      reportPageDebug('load remote report effect cleanup', {
+        reportId: router.params.id || '',
+        isMockPreview
+      });
+      // #endregion
       isMounted = false;
     };
-  }, [isMockPreview, router.params.id]);
+  }, [fallbackReport, isMockPreview, reloadToken, router.params.id]);
+
+  useEffect(() => {
+    if (!report) {
+      return;
+    }
+    // #region debug-point F:render-shape
+    reportPageDebug('report render shape', {
+      reportId: report.id,
+      title: report.title,
+      sectionKeys: (report.sections || []).map((section) => section.key),
+      pipelineKeys: (report.pipeline || []).map((step) => step.key),
+      referenceIds: (report.references || []).map((reference) => reference.id),
+      timelineKeys: (report.timeline || []).map((item) => `${item.year}-${item.title}`),
+      overseasKeys: (report.overseasWorks || []).map((work) => `${work.name}-${work.date}`),
+      domesticKeys: (report.chinaTeams || []).map((team) => `${team.name}-${team.attribute}`),
+      opportunityKeys: (report.opportunities || []).map((item) => `${item.scope}-${item.direction}`),
+      signalKeys: (report.investmentSignals || []).map((item) => `${item.timeWindow}-${item.trigger}`)
+    });
+    // #endregion
+  }, [report]);
+
+  const degradedModuleCount = useMemo(() => {
+    const matched = report?.status?.match(/部分模块降级\((\d+)\)/);
+    return matched ? Number(matched[1]) : 0;
+  }, [report?.status]);
+
+  const missingSectionTitles = useMemo(
+    () =>
+      report
+        ? SECTION_ORDER.filter((key) => !report.sections.some((section) => section.key === key)).map((key) => SECTION_TITLE_OVERRIDES[key] || key)
+        : [],
+    [report]
+  );
+
+  const pageWarnings = useMemo(() => {
+    if (!report) {
+      return [];
+    }
+
+    const warnings: string[] = [];
+
+    if (degradedModuleCount > 0) {
+      warnings.push(`本次真实生成中有 ${degradedModuleCount} 个模块走了降级路径，报告可读，但个别判断可能比模板版更保守。`);
+    }
+
+    if (missingSectionTitles.length) {
+      warnings.push(`以下 section 暂未完整返回：${missingSectionTitles.join('、')}。`);
+    }
+
+    if (!report.references.length) {
+      warnings.push('当前没有返回参考文献，建议结合原文链接继续核查。');
+    }
+
+    return warnings;
+  }, [degradedModuleCount, missingSectionTitles, report]);
 
   const sectionMap = useMemo(
     () =>
-      report.sections.reduce<Record<string, AnalysisSection>>((accumulator: Record<string, AnalysisSection>, section: AnalysisSection) => {
+      (report?.sections || []).reduce<Record<string, AnalysisSection>>((accumulator: Record<string, AnalysisSection>, section: AnalysisSection) => {
         accumulator[section.key] = section;
         return accumulator;
       }, {}),
-    [report.sections]
+    [report?.sections]
   );
 
   const structuredSections = useMemo(() => SECTION_ORDER.map((key) => sectionMap[key]).filter(Boolean), [sectionMap]);
@@ -107,31 +239,36 @@ const ReportPage: React.FC = () => {
   const metricItems = useMemo(
     () =>
       [
-        { label: '创新类型', value: report.meta.innovationType || '待判断' },
+        { label: '创新类型', value: report?.meta.innovationType || '待判断' },
         {
           label: '突破判断',
           value:
-            report.meta.breakthroughDegree === '部分缓解'
+            report?.meta.breakthroughDegree === '部分缓解'
               ? '验证了闭环可行性，但没有解决规模化与自动化'
-              : report.meta.breakthroughDegree === '完全解决'
+              : report?.meta.breakthroughDegree === '完全解决'
                 ? '核心瓶颈已被实质性解决'
-                : report.meta.breakthroughDegree === '绕过问题'
+                : report?.meta.breakthroughDegree === '绕过问题'
                   ? '通过替代路径实现阶段性推进'
                   : '待判断'
         },
-        { label: '产业化窗口', value: report.meta.industrialWindow || '待判断' },
-        { label: '领域阶段', value: report.meta.fieldStage || '待判断' }
+        { label: '产业化窗口', value: report?.meta.industrialWindow || '待判断' },
+        { label: '领域阶段', value: report?.meta.fieldStage || '待判断' }
       ].filter((item) => item.value),
-    [report.meta.breakthroughDegree, report.meta.fieldStage, report.meta.industrialWindow, report.meta.innovationType]
+    [report?.meta.breakthroughDegree, report?.meta.fieldStage, report?.meta.industrialWindow, report?.meta.innovationType]
   );
   const referenceMap = useMemo(
     () =>
-      report.references.reduce<Record<string, ReferenceItem>>((accumulator: Record<string, ReferenceItem>, reference: ReferenceItem) => {
+      (report?.references || []).reduce<Record<string, ReferenceItem>>((accumulator: Record<string, ReferenceItem>, reference: ReferenceItem) => {
         accumulator[reference.link] = reference;
         return accumulator;
       }, {}),
-    [report.references]
+    [report?.references]
   );
+
+  const handleRetryLoad = () => {
+    setRemoteStatusMessage('');
+    setReloadToken((value) => value + 1);
+  };
 
   const handleCopyLink = async (link: string) => {
     try {
@@ -141,6 +278,10 @@ const ReportPage: React.FC = () => {
       console.error('[ReportPage] copy link failed', error);
       Taro.showToast({ title: '复制失败', icon: 'error' });
     }
+  };
+
+  const handleReadAnother = () => {
+    Taro.switchTab({ url: '/pages/index/index' });
   };
 
   const getReferenceId = (link?: string) => {
@@ -173,7 +314,7 @@ const ReportPage: React.FC = () => {
   };
 
   const renderIssueTable = () => {
-    const issues = report.hyperDetail?.issues || [];
+    const issues = report?.hyperDetail?.issues || [];
     if (!issues.length) {
       return null;
     }
@@ -201,6 +342,10 @@ const ReportPage: React.FC = () => {
 
   const renderWorkCards = (kind: 'overseas' | 'domestic') => {
     if (kind === 'overseas') {
+      if (!report?.overseasWorks?.length) {
+        return <Text className={styles.emptyText}>暂未返回可展示的海外相关工作，建议结合原文与参考文献继续核查。</Text>;
+      }
+
       return (
         <View className={styles.workStack}>
           {(report.overseasWorks || []).map((work) => {
@@ -220,6 +365,10 @@ const ReportPage: React.FC = () => {
           })}
         </View>
       );
+    }
+
+    if (!report?.chinaTeams?.length) {
+      return <Text className={styles.emptyText}>暂未返回可展示的国内相关团队，本次报告先保留正式结构。</Text>;
     }
 
     return (
@@ -244,9 +393,9 @@ const ReportPage: React.FC = () => {
   };
 
   const renderOpportunityCards = () => {
-    const opportunities = report.opportunities || [];
+    const opportunities = report?.opportunities || [];
     if (!opportunities.length) {
-      return null;
+      return <Text className={styles.emptyText}>本次没有形成稳定的机会方向，建议先回到领域判断与参考文献继续核查。</Text>;
     }
 
     return (
@@ -266,9 +415,9 @@ const ReportPage: React.FC = () => {
   };
 
   const renderSignalCards = () => {
-    const signals = report.investmentSignals || [];
+    const signals = report?.investmentSignals || [];
     if (!signals.length) {
-      return null;
+      return <Text className={styles.emptyText}>当前没有足够的验证信号，本节先保留正式结构。</Text>;
     }
 
     return (
@@ -342,7 +491,7 @@ const ReportPage: React.FC = () => {
         <Text className={styles.subsectionTitle}>{SECTION_TITLE_OVERRIDES[section.key] || section.title}</Text>
         {section.highlight && section.key !== 'claim' ? <Text className={styles.highlightText}>{section.highlight}</Text> : null}
       </View>
-      <Text className={styles.sectionSummary}>{section.summary}</Text>
+      <Text className={styles.sectionSummary}>{section.summary || '本节已保留正式结构，当前未返回更多细节。'}</Text>
       {section.key === 'hype' ? renderIssueTable() : null}
       {section.key === 'claim' ? renderClaimBlocks(section) : null}
       {section.key === 'innovation' ? renderInnovationKeywords(section) : null}
@@ -359,21 +508,68 @@ const ReportPage: React.FC = () => {
           <Text className={styles.bulletText}>{bullet}</Text>
         </View>
       ))}
-      {section.key === 'timeline' && report.timeline.length ? (
-        <View className={styles.timelineStack}>
-          {report.timeline.map((item: TimelineItem) => (
-            <View key={`${item.year}-${item.title}`} className={styles.timelineCard}>
-              <Text className={styles.timelineYear}>{item.year}</Text>
-              <Text className={styles.timelineTitle}>{item.title}</Text>
-              {item.description ? <Text className={styles.timelineDesc}>{item.description}</Text> : null}
-            </View>
-          ))}
-        </View>
+      {!section.bullets.length && !['hype', 'overseas', 'domestic', 'claim', 'timeline', 'opportunity', 'signals'].includes(section.key) ? (
+        <Text className={styles.emptyText}>本节暂无更多细节，已按正式报告骨架保留位置。</Text>
+      ) : null}
+      {section.key === 'timeline' ? (
+        report?.timeline?.length ? (
+          <View className={styles.timelineStack}>
+            {report.timeline.map((item: TimelineItem) => (
+              <View key={`${item.year}-${item.title}`} className={styles.timelineCard}>
+                <Text className={styles.timelineYear}>{item.year}</Text>
+                <Text className={styles.timelineTitle}>{item.title}</Text>
+                {item.description ? <Text className={styles.timelineDesc}>{item.description}</Text> : null}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text className={styles.emptyText}>当前没有足够的时间线信息，本节先保留正式结构。</Text>
+        )
       ) : null}
       {section.key === 'overseas' ? renderWorkCards('overseas') : null}
       {section.key === 'domestic' ? renderWorkCards('domestic') : null}
     </View>
   );
+
+  const renderMissingSectionCard = (sectionKey: string) => (
+    <View key={`${sectionKey}-missing`} className={`${styles.sectionCard} ${styles.sectionCardMuted}`}>
+      <View className={styles.sectionHeaderRow}>
+        <Text className={styles.subsectionTitle}>{SECTION_TITLE_OVERRIDES[sectionKey] || sectionKey}</Text>
+        <Text className={styles.highlightText}>暂未完整返回</Text>
+      </View>
+      <Text className={styles.sectionSummary}>本节已保留在正式报告结构中，但这次真实生成没有返回足够内容，建议结合原文与参考文献继续核查。</Text>
+    </View>
+  );
+
+  if (isRemoteLoading && !report) {
+    return (
+      <View className={styles.page}>
+        <View className={styles.card}>
+          <Text className={styles.sectionTitle}>正在加载报告</Text>
+          <Text className={styles.sectionSummary}>正在读取真实报告详情，请保持页面停留。如果长时间没有结果，可以稍后重试。</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!report) {
+    return (
+      <View className={styles.page}>
+        <View className={styles.card}>
+          <Text className={styles.sectionTitle}>报告暂时不可用</Text>
+          <Text className={styles.sectionSummary}>{remoteStatusMessage || '当前没有可展示的报告内容，请稍后重试。'}</Text>
+          <View className={styles.quickActionRow}>
+            <Button className={styles.actionButton} onClick={handleRetryLoad}>
+              重新加载
+            </Button>
+            <Button className={styles.actionButton} onClick={handleReadAnother}>
+              再读一篇
+            </Button>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className={styles.page}>
@@ -385,27 +581,56 @@ const ReportPage: React.FC = () => {
       </View>
 
       <View className={styles.card}>
-        <Text className={styles.sectionTitle}>文章快照</Text>
-        <Text className={styles.metaText}>来源：{report.account}</Text>
-        <Text className={styles.metaText}>发布时间：{report.articleSnapshot.publishDate}</Text>
-        <Text className={styles.metaText}>原始材料：{report.articleSnapshot.originalMaterial}</Text>
-        {report.articleSnapshot.articleUrl ? (
-          <Button className={styles.actionButton} onClick={() => handleCopyLink(report.articleSnapshot.articleUrl)}>
-            复制公众号原文链接
-          </Button>
+        <Text className={styles.sectionTitle}>报告状态</Text>
+        <View className={styles.statusTagRow}>
+          <Text className={styles.statusTag}>{isMockPreview ? '模板报告' : '真实报告'}</Text>
+          {degradedModuleCount > 0 ? <Text className={styles.statusTag}>部分模块降级</Text> : null}
+          {remoteStatusMessage ? <Text className={styles.statusTag}>本地兜底展示</Text> : null}
+        </View>
+        <Text className={styles.sectionSummary}>{report.status || '已生成结构化报告。'}</Text>
+        {remoteStatusMessage ? <Text className={styles.noticeText}>{remoteStatusMessage}</Text> : null}
+        {pageWarnings.map((warning) => (
+          <Text key={warning} className={styles.noticeText}>
+            {warning}
+          </Text>
+        ))}
+        {remoteStatusMessage && !isMockPreview ? (
+          <View className={styles.quickActionRow}>
+            <Button className={styles.actionButton} onClick={handleRetryLoad}>
+              重新拉取远端报告
+            </Button>
+          </View>
         ) : null}
       </View>
 
       <View className={styles.card}>
-        <Text className={styles.sectionTitle}>核心预览</Text>
-        <View className={styles.previewGrid}>
-          {report.pipeline.map((step: AnalysisStep) => (
-            <View key={step.key} className={styles.previewCard}>
-              <Text className={styles.stepTitle}>{step.title}</Text>
-              <Text className={styles.stepDesc}>{step.description}</Text>
-            </View>
-          ))}
+        <Text className={styles.sectionTitle}>文章快照</Text>
+        <Text className={styles.metaText}>来源：{report.account}</Text>
+        <Text className={styles.metaText}>发布时间：{report.articleSnapshot.publishDate || '未识别'}</Text>
+        <Text className={styles.metaText}>原始材料：{report.articleSnapshot.originalMaterial || '未识别到明确的一手材料'}</Text>
+        <View className={styles.quickActionRow}>
+          {report.articleSnapshot.articleUrl ? (
+            <Button className={styles.actionButton} onClick={() => handleCopyLink(report.articleSnapshot.articleUrl)}>
+              复制公众号原文链接
+            </Button>
+          ) : null}
         </View>
+      </View>
+
+      <View className={styles.card}>
+        <Text className={styles.sectionTitle}>核心预览</Text>
+        {report.pipeline.length ? (
+          <View className={styles.previewGrid}>
+            {report.pipeline.map((step: AnalysisStep) => (
+              <View key={step.key} className={styles.previewCard}>
+                <Text className={styles.stepTitle}>{step.title}</Text>
+                <Text className={styles.stepDesc}>{step.description}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text className={styles.emptyText}>当前没有可展示的流程预览，报告仍保留正式内容结构。</Text>
+        )}
       </View>
 
       {(isStructuredReport ? groupedSections : []).map((group) => (
@@ -430,9 +655,17 @@ const ReportPage: React.FC = () => {
                 {group.sections
                   .filter((section: AnalysisSection) => section.key !== 'team')
                   .map((section: AnalysisSection) => renderSectionCard(section))}
+                {group.sectionKeys
+                  .filter((sectionKey: string) => !group.sections.some((section: AnalysisSection) => section.key === sectionKey))
+                  .map((sectionKey: string) => renderMissingSectionCard(sectionKey))}
               </>
             ) : (
-              group.sections.map((section: AnalysisSection) => renderSectionCard(section))
+              <>
+                {group.sections.map((section: AnalysisSection) => renderSectionCard(section))}
+                {group.sectionKeys
+                  .filter((sectionKey: string) => !group.sections.some((section: AnalysisSection) => section.key === sectionKey))
+                  .map((sectionKey: string) => renderMissingSectionCard(sectionKey))}
+              </>
             )}
           </View>
         </View>
@@ -447,19 +680,29 @@ const ReportPage: React.FC = () => {
 
       <View className={`${styles.card} ${styles.referenceSectionCard}`}>
         <Text className={styles.sectionTitle}>参考文献</Text>
-        <View className={styles.referenceList}>
-          {report.references.map((reference: ReferenceItem) => (
-            <View key={reference.id} className={styles.referenceRow}>
-              <View className={styles.referenceMain}>
-                <Text className={styles.referenceId}>[{reference.id}]</Text>
-                <Text className={styles.referenceTitle}>{reference.title}</Text>
+        {report.references.length ? (
+          <View className={styles.referenceList}>
+            {report.references.map((reference: ReferenceItem) => (
+              <View key={reference.id} className={styles.referenceRow}>
+                <View className={styles.referenceMain}>
+                  <Text className={styles.referenceId}>[{reference.id}]</Text>
+                  <Text className={styles.referenceTitle}>{reference.title}</Text>
+                </View>
+                <Button className={styles.referenceActionButton} onClick={() => handleCopyLink(reference.link)}>
+                  复制链接
+                </Button>
               </View>
-              <Button className={styles.referenceActionButton} onClick={() => handleCopyLink(reference.link)}>
-                复制链接
-              </Button>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : (
+          <Text className={styles.emptyText}>本次未返回参考文献，请优先复制公众号原文链接并回到原文继续核查。</Text>
+        )}
+      </View>
+
+      <View className={styles.bottomActionCard}>
+        <Button className={styles.bottomPrimaryButton} onClick={handleReadAnother}>
+          再读一篇
+        </Button>
       </View>
     </View>
   );

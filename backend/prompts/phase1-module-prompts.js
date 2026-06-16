@@ -4,8 +4,12 @@ const P0_SYSTEM_PROMPT = `你是 Re-Read 的文章分类引擎。阅读用户提
 - A类：核心内容是解读一篇具体的学术论文（有DOI、arXiv编号、或明确论文标题）
 - C类：核心内容是公司/产品发布、融资新闻（无同行评审论文支撑）
 - A+C混合：公司发布，同时以一篇具体论文为核心技术支撑
-- 部分可分析：纯PR/综述/科普/重复报道（有价值但缺少一手技术材料）
-- 不支持：完全不属于AI4S领域
+- 部分可分析：技术综述、行业分析、PR、科普、重复报道（有价值但缺少一手技术材料）
+- 不支持：内容不属于技术、科研、产品或产业分析范畴，例如生活方式、情绪表达、泛社会资讯
+
+输出要求：
+- 所有字符串尽量紧凑但不要遗漏关键判断，单字段优先控制在30字以内。
+- reason 保持一句话，但不要省略判断依据。
 
 严格按以下JSON格式输出，不要有任何其他文字：
 {"type":"A类|C类|A+C混合|部分可分析|不支持","subtype":"纯PR|综述|科普|重复报道|null","confidence":0.0,"reason":"一句话判断依据","source_hint":"论文标题或DOI，没有则null","can_proceed":true}`;
@@ -18,6 +22,12 @@ const M1_SYSTEM_PROMPT = `你是 Re-Read 的公众号质量评估引擎。评估
 - A数字失真：关键数字被放大、缩小或断章取义
 - B局限性省略：论文明确提到的局限性在公众号中被略去
 - C结论超范围：标题或结论超出论文实际claim的范围
+
+输出要求：
+- 所有字符串尽量紧凑但不要遗漏关键信息，单字段优先控制在40字以内。
+- author_background 保持一句话。
+- issues 最多输出 2 条，只有确实存在时才输出。
+- summary 保持 1-2 句话。
 
 严格按以下JSON格式输出，不要有任何其他文字：
 {"credibility":"高|中|低","author_background":"一句话","interest_conflict":false,"exaggeration_level":"低|中|高","issues":[{"type":"A数字失真|B局限性省略|C结论超范围","claim":"公众号表述","reality":"实际情况","severity":"轻微|中等|严重"}],"recommend_original":true,"summary":"两句话总结"}`;
@@ -32,7 +42,14 @@ To VC风险（C类和A+C必做，A类填"不适用"）：
 
 创新点类型：技术创新/应用创新/系统工程创新/混合
 
-search_keywords必须是英文，基于创新点而非应用场景，3-6个。
+所有字符串字段统一使用中文输出。
+search_keywords输出3-6个中文短词，基于创新点而非应用场景。
+
+输出要求：
+- 所有字符串字段统一使用中文输出。
+- 所有字符串尽量紧凑但不要遗漏关键信息，单字段优先控制在40字以内。
+- limitations 最多输出 3 条。
+- search_keywords 输出 3-5 个中文短词，基于创新点而非应用场景。
 
 严格按以下JSON格式输出，不要有任何其他文字：
 {"team":{"lead_author":"","institution":"","related_company":null,"funding_info":null,"china_connection":null},"commercial_intent":"","to_vc_risk":{"level":"低|中|高|不适用","narrative_signals":0,"timing_signals":0,"technical_signals":0,"note":""},"core_claim":"","limitations":[],"innovation":{"type":"技术创新|应用创新|系统工程创新|混合","description":"","search_keywords":[]}}`;
@@ -47,20 +64,26 @@ TRL参考：1-3基础研究/概念验证，4-5实验室验证，6-7真实环境�
 
 突破程度：完全解决/部分缓解/绕过问题
 
+输出要求：
+- 所有字符串尽量简短，单字段优先控制在40字以内。
+
 严格按以下JSON格式输出，不要有任何其他文字：
 {"bottleneck":{"description":"","why_unsolved":""},"breakthrough":{"degree":"完全解决|部分缓解|绕过问题","explanation":"","next_bottleneck":""},"productization":{"data_barrier":{"level":"高|中|低","benchmark":""},"compute_cost":{"level":"高|中|低","benchmark":""},"engineering_gap":{"level":"大|中|小","note":""},"regulation":{"level":"复杂|中等|简单","benchmark":""}},"trl":{"score":5,"reference_case":"","time_window":{"tool_layer":"","application_layer":""}}}`;
 
 const M4_SYSTEM_PROMPT = `你是 Re-Read 的领域全景分析引擎。
 
 按【创新点】而非【应用场景】检索同类工作。
-找3-6篇过去18个月内的代表性海外工作，每条必须有ref_url。
-找2-5个国内相关团队，注明：学术/开源/商业产品，对标程度：完全对标/部分对标/表面相关，与国际前沿的具体差距。
+找3-5篇过去18个月内的代表性海外工作，每条必须有ref_url。
+找2-4个国内相关团队，注明：学术/开源/商业产品，对标程度：完全对标/部分对标/表面相关，与国际前沿的具体差距。
 
 时间线描述：
 - origin: 这个方向的奠基性工作是什么
 - current_frontier: 2026年前沿在解决什么问题
 - next_challenge: 领域公认的下一个难题
 - this_work_position: 本文在时间线上的位置
+
+输出要求：
+- 所有字符串尽量紧凑但不要遗漏关键信息，单字段优先控制在48字以内。
 
 严格按以下JSON格式输出，不要有任何其他文字：
 {"timeline":{"origin":"","current_frontier":"","next_challenge":"","this_work_position":""},"overseas_works":[{"name":"","institution":"","date":"YYYY-MM","timeline_position":"","solved":"","unsolved":"","ref_url":""}],"china_teams":[{"name":"","work":"","timeline_position":"","attribute":"学术|开源|商业产品","match_degree":"完全对标|部分对标|表面相关","gap":"","commercialization":null,"ref_url":""}]}`;
@@ -72,49 +95,111 @@ const M5_SYSTEM_PROMPT = `你是 Re-Read 的投资信号提取引擎。
 国内机会用scope="国内"单独标注。
 待验证信号注明时间窗口：近期(<6个月)/中期(6-24个月)/长期(>2年)/不确定。
 
+输出要求：
+- 所有字符串尽量紧凑但不要遗漏关键信息，单字段优先控制在48字以内。
+- opportunities 最多输出 3 条。
+- signals 最多输出 3 条。
+
 严格按以下JSON格式输出，不要有任何其他文字：
 {"field_stage":{"phase":"概念期|产品期|商业化期|成熟期","main_driver":"","key_uncertainty":""},"opportunities":[{"direction":"","basis":"","gap_type":"技术空缺|商业化空缺|验证空缺","scope":"全球|国内"}],"signals":[{"trigger":"","meaning":"","time_window":"近期(<6个月)|中期(6-24个月)|长期(>2年)|不确定"}]}`;
 
 const stringifyJson = (value) => JSON.stringify(value || {}, null, 2);
+const pickContext = (value, keys = []) =>
+  keys.reduce((result, key) => {
+    if (value && value[key] !== undefined && value[key] !== null && value[key] !== '') {
+      result[key] = value[key];
+    }
+    return result;
+  }, {});
 
 const buildP0UserMsg = (articleContent) => `【公众号文章内容】
 ${articleContent || ''}`;
 
-const buildM1UserMsg = (articleContent, p0) => `【公众号文章内容】
-${articleContent || ''}
+const buildM1UserMsg = (articleContent, p0) => {
+  const hasP0Context = p0 && typeof p0 === 'object' && Object.keys(p0).length > 0;
+  return `【公众号文章内容】
+${articleContent || ''}${hasP0Context ? `\n\n【P0输出】\n${stringifyJson(p0)}` : ''}`;
+};
 
-【P0输出】
-${stringifyJson(p0)}`;
+const buildM2UserMsg = (articleContent, p0, m1) => {
+  const compactP0 = pickContext(p0, ['type', 'subtype', 'reason', 'source_hint', 'can_proceed']);
+  const compactM1 = {
+    ...pickContext(m1, ['credibility', 'author_background', 'interest_conflict', 'exaggeration_level', 'recommend_original', 'summary']),
+    issues: Array.isArray(m1?.issues)
+      ? m1.issues.slice(0, 2).map((item) => pickContext(item, ['type', 'severity', 'claim', 'reality']))
+      : []
+  };
 
-const buildM2UserMsg = (articleContent, p0, m1) => `【公众号文章内容】
+  return `【公众号文章内容】
 ${articleContent || ''}
 
 【前序输出】
-P0: ${stringifyJson(p0)}
-M1: ${stringifyJson(m1)}`;
+P0: ${stringifyJson(compactP0)}
+M1: ${stringifyJson(compactM1)}`;
+};
 
 const buildM3UserMsg = (articleContent, p0, m1, m2) => `【公众号文章内容】
 ${articleContent || ''}
 
 【前序输出】
-P0: ${stringifyJson(p0)}
-M1: ${stringifyJson(m1)}
-M2: ${stringifyJson(m2)}`;
+P0: ${stringifyJson(pickContext(p0, ['type', 'subtype', 'reason', 'source_hint']))}
+M1: ${stringifyJson({
+  ...pickContext(m1, ['credibility', 'exaggeration_level', 'summary']),
+  issues: Array.isArray(m1?.issues) ? m1.issues.slice(0, 2).map((item) => pickContext(item, ['type', 'severity', 'claim', 'reality'])) : []
+})}
+M2: ${stringifyJson({
+  team: pickContext(m2?.team, ['lead_author', 'institution', 'related_company']),
+  to_vc_risk: pickContext(m2?.to_vc_risk, ['level', 'note']),
+  core_claim: m2?.core_claim || '',
+  limitations: Array.isArray(m2?.limitations) ? m2.limitations.slice(0, 3) : [],
+  innovation: pickContext(m2?.innovation, ['type', 'description'])
+})}`;
 
-const buildM4UserMsg = (articleContent, p0, m2, m3) => `【公众号文章内容】
+const buildM4UserMsg = (articleContent, p0, m2, m3) => {
+  const compactP0 = pickContext(p0, ['type', 'subtype', 'reason', 'source_hint']);
+  const compactM2 = {
+    core_claim: m2?.core_claim || '',
+    innovation: {
+      type: m2?.innovation?.type || '',
+      description: m2?.innovation?.description || '',
+      search_keywords: m2?.innovation?.search_keywords || []
+    }
+  };
+  const compactM3 = {
+    bottleneck: pickContext(m3?.bottleneck, ['description', 'why_unsolved']),
+    breakthrough: pickContext(m3?.breakthrough, ['degree', 'next_bottleneck'])
+  };
+
+  return `【公众号文章内容】
 ${articleContent || ''}
 
 【前序输出】
-P0: ${stringifyJson(p0)}
-M2创新点检索词: ${JSON.stringify(m2?.innovation?.search_keywords || [], null, 2)}
-M3领域瓶颈: ${stringifyJson(m3?.bottleneck || {})}`;
+P0: ${stringifyJson(compactP0)}
+M2: ${stringifyJson(compactM2)}${m3 ? `\nM3: ${stringifyJson(compactM3)}` : ''}`;
+};
 
 const buildM5UserMsg = (articleContent, m3, m4) => `【公众号文章内容】
 ${articleContent || ''}
 
 【前序输出】
-M3: ${stringifyJson(m3)}
-M4: ${stringifyJson(m4)}`;
+M3: ${stringifyJson({
+  bottleneck: pickContext(m3?.bottleneck, ['description', 'why_unsolved']),
+  breakthrough: pickContext(m3?.breakthrough, ['degree', 'explanation', 'next_bottleneck']),
+  trl: {
+    score: m3?.trl?.score,
+    reference_case: m3?.trl?.reference_case || '',
+    time_window: pickContext(m3?.trl?.time_window, ['tool_layer', 'application_layer'])
+  }
+})}
+M4: ${stringifyJson({
+  timeline: pickContext(m4?.timeline, ['current_frontier', 'next_challenge', 'this_work_position']),
+  overseas_works: Array.isArray(m4?.overseas_works)
+    ? m4.overseas_works.slice(0, 4).map((item) => pickContext(item, ['name', 'timeline_position', 'solved', 'unsolved']))
+    : [],
+  china_teams: Array.isArray(m4?.china_teams)
+    ? m4.china_teams.slice(0, 3).map((item) => pickContext(item, ['name', 'attribute', 'match_degree', 'gap', 'commercialization']))
+    : []
+})}`;
 
 module.exports = {
   P0_SYSTEM_PROMPT,

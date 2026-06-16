@@ -9,6 +9,9 @@ backend/.env
 # Runtime data
 backend/data/
 .runtime-data/
+.npm/
+.swc/
+.taro4.0/
 
 # IDE and preview artifacts
 .dbg/
