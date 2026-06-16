@@ -28,7 +28,8 @@
     "dev:qq": "npm run build:qq -- --watch",
     "dev:jd": "npm run build:jd -- --watch",
     "dev:quickapp": "npm run build:quickapp -- --watch",
-    "mock:report": "node scripts/generate-mock-report.js"
+    "mock:report": "node scripts/generate-mock-report.js",
+    "test:baseline": "node --test tests/*.test.js"
   },
   "browserslist": [
     "last 3 versions",

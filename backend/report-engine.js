@@ -20,7 +20,30 @@ const unique = (items) => Array.from(new Set(items.filter(Boolean)));
 const asYesNo = (value) => (value ? '是' : '否');
 const joinMaterial = (...items) => unique(items).join(' · ');
 const stripIssuePrefix = (value = '') => value.replace(/^[A-Z]/, '');
-const safeText = (value, fallback = '待判断') => value || fallback;
+const safeText = (value, fallback = '当前公开信息不足，需结合原文继续判断') => value || fallback;
+const safeArray = (items = [], fallbackText = '当前公开信息不足，需结合原文继续判断') => (items && items.length ? items : [fallbackText]);
+const formatFallbackReason = (reason = '') => {
+  if (!reason) {
+    return '当前链路已完成正式报告装配，但部分判断仍需结合原文继续核验。';
+  }
+
+  return String(reason)
+    .replace(/M\d|P0/g, '相关分析')
+    .replace(/模块降级[:：]?\s*/g, '')
+    .replace(/输出字段缺失，已按默认值补齐/g, '部分信息未完整返回，已按正式报告结构补齐')
+    .replace(/模块请求超时/g, '分析耗时较长')
+    .replace(/LLM response.*$/i, '模型返回不完整')
+    .trim();
+};
+const buildFormalGapText = (reason = '', fallback = '当前公开信息不足，需结合原文继续核验') => {
+  const normalizedReason = formatFallbackReason(reason);
+  return normalizedReason || fallback;
+};
+const buildFormalMetricLine = (label, level, detail, fallbackDetail) =>
+  `${label}：${level || '需继续核验'}；${detail || fallbackDetail}`;
+const buildFormalKeywordLine = (keywords = []) =>
+  keywords.length ? `相关关键词：${keywords.join(' / ')}` : '相关关键词：建议围绕核心技术路径、实验闭环和工程化能力继续补检';
+const ensureSummary = (value, fallback) => safeText(value, fallback);
 const normalizeRiskLevel = (value, fallback = '中') => {
   const normalized = String(value || '').trim();
   if (['高', '中', '低'].includes(normalized)) {
@@ -58,7 +81,7 @@ const formatBreakthroughLabel = (degree = '') => {
   if (degree === '绕过问题') {
     return '通过替代路径实现阶段性推进';
   }
-  return '待判断';
+  return '仍需结合原文与同类工作继续判断';
 };
 const formatIndustrialStage = (phase = '') => {
   if (phase === '商业化期') {
@@ -73,7 +96,7 @@ const formatIndustrialStage = (phase = '') => {
   if (phase === '成熟期') {
     return '成熟部署阶段';
   }
-  return '待判断';
+  return '尚处于需要继续核验的阶段';
 };
 const buildQualityConclusion = (m1 = {}) => {
   const hypeLevel = normalizeRiskLevel(m1.exaggeration_level);
@@ -154,7 +177,7 @@ const buildReferences = (payload = {}, structuredM4 = {}, fallbackTitle = '') =>
 const createStructuredReportSkeleton = () => ({
   id: 'reread-report',
   title: '公众号文章解读',
-  subtitle: '判断：待补充',
+  subtitle: '判断：已基于导入内容生成正式报告，关键结论仍需结合一手材料继续核验。',
   coreClaim: '',
   account: '公众号链接导入',
   cover: 'https://picsum.photos/id/119/750/500',
@@ -166,9 +189,9 @@ const createStructuredReportSkeleton = () => ({
   meta: {
     credibility: '中',
     hypeLevel: '中',
-    innovationType: '待判断',
+    innovationType: '需结合原文继续判断',
     trl: '',
-    industrialWindow: '待判断'
+    industrialWindow: '需结合原文继续判断'
   },
   articleSnapshot: {
     sourceName: '公众号链接导入',
@@ -228,6 +251,12 @@ const createStructuredReportSkeleton = () => ({
 
 const buildDynamicSections = (payload, agentResult) => {
   const { p0 = {}, m1 = {}, m2 = {}, m3 = {}, m4 = {}, m5 = {} } = agentResult;
+  const moduleErrors = agentResult.modules || {};
+  const m1Gap = buildFormalGapText(moduleErrors.M1?.error);
+  const m2Gap = buildFormalGapText(moduleErrors.M2?.error);
+  const m3Gap = buildFormalGapText(moduleErrors.M3?.error);
+  const m4Gap = buildFormalGapText(moduleErrors.M4?.error);
+  const m5Gap = buildFormalGapText(moduleErrors.M5?.error);
   const sections = [];
   const overseasWorks = m4.overseas_works || [];
   const chinaTeams = (m4.china_teams || []).filter((item) => item.match_degree !== '表面相关');
@@ -240,10 +269,10 @@ const buildDynamicSections = (payload, agentResult) => {
   sections.push({
     key: 'quality',
     title: '公众号质量评估',
-    summary: m1.summary || buildQualitySummary(m1),
+    summary: ensureSummary(m1.summary, moduleErrors.M1?.error ? `公众号质量判断已完成正式装配，但${m1Gap}。` : buildQualitySummary(m1)),
     bullets: [
       buildQualityConclusion(m1),
-      `作者背景：${safeText(m1.author_background, '未知')}`,
+      `作者背景：${safeText(m1.author_background, moduleErrors.M1?.error ? '当前未返回稳定作者背景信息，建议回到原文与账号历史继续核查。' : '原文未明确披露作者背景。')}`,
       `证据：${m1.interest_conflict ? '存在利益相关，需要谨慎解读' : '未发现直接利益相关'}；建议参考原文：${asYesNo(m1.recommend_original)}`,
       buildQualityBoundary(m1)
     ],
@@ -268,46 +297,54 @@ const buildDynamicSections = (payload, agentResult) => {
   sections.push({
     key: 'team',
     title: '团队背景与商业意图',
-    summary: m2.commercial_intent || '已完成团队与用途分析。',
+    summary: ensureSummary(m2.commercial_intent, moduleErrors.M2?.error ? `团队与用途分析已完成正式装配，但${m2Gap}。` : '已完成团队与用途分析。'),
     bullets: [
       m2.team?.lead_author ? `通讯作者：${m2.team.lead_author}${m2.team.institution ? `（${m2.team.institution}）` : ''}` : null,
       m2.team?.related_company ? `关联公司：${m2.team.related_company}` : null,
       m2.team?.funding_info ? `融资信息：${m2.team.funding_info}` : null,
       m2.team?.china_connection ? `中国关联：${m2.team.china_connection}` : null,
       m2.commercial_intent ? `商业意图：${m2.commercial_intent}` : null
-    ].filter(Boolean),
+    ].filter(Boolean).length
+      ? [
+          m2.team?.lead_author ? `通讯作者：${m2.team.lead_author}${m2.team.institution ? `（${m2.team.institution}）` : ''}` : null,
+          m2.team?.related_company ? `关联公司：${m2.team.related_company}` : null,
+          m2.team?.funding_info ? `融资信息：${m2.team.funding_info}` : null,
+          m2.team?.china_connection ? `中国关联：${m2.team.china_connection}` : null,
+          m2.commercial_intent ? `商业意图：${m2.commercial_intent}` : null
+        ].filter(Boolean)
+      : safeArray([], moduleErrors.M2?.error ? `团队与商业意图部分信息未完整返回，${m2Gap}。` : '当前公开信息不足，建议先围绕作者、机构与发布背景继续补证。'),
     tone: 'default'
   });
 
   sections.push({
     key: 'claim',
     title: '核心 Claim',
-    summary: m2.core_claim || '已完成核心主张提取。',
-    bullets: buildClaimBullets(m2.core_claim, m2.limitations || [])
+    summary: ensureSummary(m2.core_claim, moduleErrors.M2?.error ? `核心主张已完成正式装配，但${m2Gap}。` : '已完成核心主张提取。'),
+    bullets: buildClaimBullets(m2.core_claim || '当前公开材料更像阶段性进展展示，关键 claim 仍需结合原文继续核验。', m2.limitations || [])
   });
 
   sections.push({
     key: 'innovation',
     title: '创新点识别',
-    summary: m2.innovation?.description || '已完成创新点识别。',
+    summary: ensureSummary(m2.innovation?.description, moduleErrors.M2?.error ? `创新点识别已完成正式装配，但${m2Gap}。` : '已完成创新点识别。'),
     bullets: [
-      `创新类型：${safeText(m2.innovation?.type)}`,
-      `一句话概括：${safeText(m2.innovation?.description)}`,
-      `相关关键词：${(m2.innovation?.search_keywords || []).join(' / ') || '待补充'}`
+      `创新类型：${safeText(m2.innovation?.type, '当前更接近系统整合式推进，仍需结合原文继续判断')}`,
+      `一句话概括：${safeText(m2.innovation?.description, '当前公开信息更能支持方向性判断，仍需结合原文细节继续补证。')}`,
+      buildFormalKeywordLine(m2.innovation?.search_keywords || [])
     ],
-    highlight: `创新点类型：${m2.innovation?.type || ''}`,
+    highlight: `创新点类型：${safeText(m2.innovation?.type, '需继续核验')}`,
     tone: 'success'
   });
 
   sections.push({
     key: 'bottleneck',
     title: '领域瓶颈与突破程度',
-    summary: m3.bottleneck?.description || '',
+    summary: ensureSummary(m3.bottleneck?.description, moduleErrors.M3?.error ? `领域瓶颈判断已完成正式装配，但${m3Gap}。` : '已完成领域瓶颈与突破程度判断。'),
     bullets: [
-      `之前未解决原因：${safeText(m3.bottleneck?.why_unsolved, '')}`,
-      `突破说明：${safeText(m3.breakthrough?.explanation, '')}`,
-      `下一个瓶颈：${safeText(m3.breakthrough?.next_bottleneck, '')}`
-    ].filter(Boolean),
+      `之前未解决原因：${safeText(m3.bottleneck?.why_unsolved, '当前仍缺少稳定公开证据，建议结合原文与同类工作继续判断。')}`,
+      `突破说明：${safeText(m3.breakthrough?.explanation, '当前更适合作为阶段性推进来理解，仍需结合验证结果继续判断。')}`,
+      `下一个瓶颈：${safeText(m3.breakthrough?.next_bottleneck, '下一步仍要观察规模化、可复现性与工程化约束。')}`
+    ],
     highlight: `突破判断：${formatBreakthroughLabel(m3.breakthrough?.degree)}`
   });
 
@@ -316,16 +353,16 @@ const buildDynamicSections = (payload, agentResult) => {
     key: 'industrial',
     title: '产业化可行性',
     summary:
-      industrialStage === '待判断'
-        ? '当前已完成产业化可行性判断，重点是识别数据、工程化和落地约束。'
+      industrialStage === '尚处于需要继续核验的阶段'
+        ? `当前已完成产业化可行性判断，但${moduleErrors.M3?.error ? m3Gap : '部分结论仍需结合公开验证材料继续核验'}。`
         : `当前更接近${industrialStage}，重点是验证产品交付、工程化能力和落地约束。`,
     bullets: [
-      `数据壁垒：${productization.data_barrier?.level || '待判断'}；${productization.data_barrier?.benchmark || '待补充'}`,
-      `算力成本：${productization.compute_cost?.level || '待判断'}；${productization.compute_cost?.benchmark || '待补充'}`,
-      `工程化 gap：${productization.engineering_gap?.level || '待判断'}；${productization.engineering_gap?.note || '待补充'}`,
-      `监管路径：${productization.regulation?.level || '待判断'}；${productization.regulation?.benchmark || '待补充'}`,
-      `工具层商业化：${m3.trl?.time_window?.tool_layer || '待判断'}`,
-      `应用层商业化：${m3.trl?.time_window?.application_layer || '待判断'}`
+      buildFormalMetricLine('数据壁垒', productization.data_barrier?.level, productization.data_barrier?.benchmark, '当前仍需结合数据来源与合作路径继续核验'),
+      buildFormalMetricLine('算力成本', productization.compute_cost?.level, productization.compute_cost?.benchmark, '当前仍需结合训练与推理成本继续判断'),
+      buildFormalMetricLine('工程化 gap', productization.engineering_gap?.level, productization.engineering_gap?.note, '当前仍需结合真实交付链路继续判断'),
+      buildFormalMetricLine('监管路径', productization.regulation?.level, productization.regulation?.benchmark, '当前仍需结合具体赛道和落地路径继续判断'),
+      `工具层商业化：${safeText(m3.trl?.time_window?.tool_layer, '当前仍处于需要继续核验的窗口')}`,
+      `应用层商业化：${safeText(m3.trl?.time_window?.application_layer, '当前仍处于需要继续核验的窗口')}`
     ],
     tone: 'info',
     highlight: `当前阶段：${industrialStage}`
@@ -341,14 +378,14 @@ const buildDynamicSections = (payload, agentResult) => {
   sections.push({
     key: 'overseas',
     title: '海外代表性工作',
-    summary: overseasWorks.length ? '已筛出与当前方向最相关的海外代表性工作，用来定位它在全球进展中的位置。' : '暂未找到满足条件的海外代表性工作。',
+    summary: overseasWorks.length ? '已筛出与当前方向最相关的海外代表性工作，用来定位它在全球进展中的位置。' : `当前还没有形成稳定的海外对照清单，${m4Gap}。`,
     bullets: []
   });
 
   sections.push({
     key: 'domestic',
     title: '国内研究扫描',
-    summary: chinaTeams.length ? '已筛出与当前方向相关的国内团队或产品，用来判断国内跟进位置与差距。' : '暂未找到满足条件的国内团队。',
+    summary: chinaTeams.length ? '已筛出与当前方向相关的国内团队或产品，用来判断国内跟进位置与差距。' : `当前还没有形成稳定的国内对照清单，${m4Gap}。`,
     bullets: []
   });
 
@@ -358,12 +395,12 @@ const buildDynamicSections = (payload, agentResult) => {
     summary:
       opportunities.length && industrialStage !== '待判断'
         ? `当前处于${industrialStage}，更值得关注供给缺口、工程化短板和验证空白，而不是直接寻找终局赢家。`
-        : '暂未形成明确的机会方向。',
+        : `当前还不足以形成明确的机会方向，${m5Gap}。`,
     bullets: opportunities.length
-      ? opportunities.map((item) => `[${item.scope}·${item.gap_type}] ${item.direction}（依据：${item.basis || '待补充'}）`)
-      : ['暂未形成明确的机会方向'],
+      ? opportunities.map((item) => `[${item.scope}·${item.gap_type}] ${item.direction}（依据：${item.basis || '当前仍需结合领域对比继续补证'}）`)
+      : ['当前还不足以形成稳定机会方向，建议先补齐时间线对照、验证路径和工程化证据。'],
     tone: 'success',
-    highlight: `领域阶段：${m5.field_stage?.phase || '待判断'}`
+    highlight: `领域阶段：${safeText(m5.field_stage?.phase, '需继续核验')}`
   });
 
   sections.push({
@@ -371,8 +408,10 @@ const buildDynamicSections = (payload, agentResult) => {
     title: '关键待验证信号',
     summary: signals.length
       ? '这类方向的关键不在论文热度，而在闭环能否扩展、结果能否外推到更高验证层级。'
-      : '暂无待验证信号。',
-    bullets: signals.length ? signals.map((item) => `[${item.time_window}] ${item.trigger} → ${item.meaning}`) : ['暂无待验证信号'],
+      : `当前还没有形成稳定的待验证信号，${m5Gap}。`,
+    bullets: signals.length
+      ? signals.map((item) => `[${item.time_window}] ${item.trigger} → ${item.meaning}`)
+      : ['建议继续观察独立复现结果、实验层级提升以及真实产品交付信号。'],
     tone: 'warning'
   });
 
@@ -482,7 +521,7 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
 
   if (structuredM3?.trl?.time_window?.tool_layer) {
     report.meta.trl = '';
-    report.meta.industrialWindow = structuredM3.trl.time_window?.tool_layer || '待判断';
+    report.meta.industrialWindow = structuredM3.trl.time_window?.tool_layer || '需结合验证节奏继续判断';
   }
 
   if (structuredM3?.breakthrough?.degree) {
@@ -508,6 +547,15 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
       ? '判断：已基于导入内容生成正式报告，关键结论仍需结合原文继续核验。'
       : `${baseReport.subtitle} 当前导入文本长度约 ${content.length} 字。`;
   }
+
+  if (!report.coreClaim && structuredM2?.core_claim) {
+    report.coreClaim = structuredM2.core_claim;
+  }
+
+  report.coreClaim = report.coreClaim || '当前公开材料更适合作为方向性线索，关键主张仍需结合原文和补充材料继续核验。';
+  report.meta.innovationType = report.meta.innovationType || '需结合原文继续判断';
+  report.meta.industrialWindow = report.meta.industrialWindow || '需结合验证节奏继续判断';
+  report.meta.fieldStage = report.meta.fieldStage || '概念期';
 
   if (isStructuredAdapter) {
     report.sections = buildDynamicSections(payload, agentResult);
@@ -638,9 +686,9 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
     if (agentResult.missingItems?.length) {
       report.sections.push({
         key: 'agentMissingItems',
-        title: '缺失项提示',
-        summary: '后端 Agent 检测到以下缺失项，需要后续继续补证。',
-        bullets: agentResult.missingItems,
+        title: '当前仍需补证的部分',
+        summary: '以下内容是当前报告尚未完全补齐的证据空白，建议作为后续核查清单继续跟进。',
+        bullets: agentResult.missingItems.map((item) => buildFormalGapText(item, '当前仍需补充一手材料或第三方证据。')),
         tone: 'warning'
       });
     }
@@ -649,8 +697,8 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
       report.sections.push({
         key: 'agentFollowups',
         title: '后续跟踪建议',
-        summary: '以下建议来自 SOP Agent，用于后续研究动作。',
-        bullets: agentResult.followups,
+        summary: '以下建议已整理成后续研究动作，便于继续追踪原文、实验和商业化信号。',
+        bullets: agentResult.followups.map((item) => safeText(item, '建议继续观察原文、实验验证与产品化进展。')),
         tone: 'success'
       });
     }
