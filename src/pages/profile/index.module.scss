@@ -2,78 +2,183 @@
 
 .page {
   min-height: 100vh;
-  padding: 24rpx $page-padding 48rpx;
+  padding: 40rpx $page-padding 72rpx;
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
-}
-
-.card {
-  width: 100%;
-  max-width: $max-content-width;
-  background: $color-bg-card;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-card;
-  padding: 36rpx;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-}
-
-.title {
-  font-size: $font-size-xl;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-}
-
-.desc,
-.itemText {
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
-  line-height: $line-height-loose;
-}
-
-.metaText {
-  font-size: $font-size-xs;
-  color: $color-text-tertiary;
-  line-height: $line-height-loose;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-.buttonGroup {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-.item {
-  padding: $spacing-md;
-  border-radius: $radius-lg;
+  gap: 28rpx;
   background: $color-bg-page;
 }
 
-.secondaryButton,
-.actionButton {
-  @include button-reset;
+/* ---------- 报头 ---------- */
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding-bottom: 22rpx;
+  border-bottom: 1rpx solid $color-border;
+}
+
+.eyebrow {
+  @include eyebrow;
+  color: $color-primary;
+}
+
+.headline {
+  font-family: $font-serif;
+  font-size: 44rpx;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: $color-text-primary;
+}
+
+/* ---------- 额度 ---------- */
+.quotaCard {
+  @include paper(30rpx);
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.quotaLabel {
+  @include eyebrow;
+}
+
+.quotaRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+}
+
+.quotaUsed {
+  @include tabular;
+  font-size: 64rpx;
+  line-height: 1.1;
+  color: $color-primary;
+  letter-spacing: -0.02em;
+}
+
+.quotaLimit {
+  @include tabular;
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.quotaRefresh {
+  margin-left: auto;
+  font-size: 20rpx;
+  color: $color-text-secondary;
+  border: 1rpx solid $color-border;
+  border-radius: $radius-xs;
+  padding: 4rpx 12rpx;
+  letter-spacing: 0.06em;
+}
+
+.quotaTrack {
   width: 100%;
-  border-radius: $radius-button;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  height: 4rpx;
+  background: #ece8dd;
+  overflow: hidden;
 }
 
-.actionButton {
-  height: $button-height-lg;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
-  color: $color-text-white;
+.quotaFill {
+  height: 100%;
+  background: $color-primary;
+  transition: width $transition-base;
 }
 
-.secondaryButton {
-  height: $button-height-md;
-  background: $color-primary-soft;
-  color: $color-primary-dark;
+.quotaNote {
+  font-size: 20rpx;
+  line-height: 1.7;
+  color: $color-text-tertiary;
+}
+
+/* ---------- 状态 ---------- */
+.statusCard,
+.notesCard {
+  @include paper(30rpx);
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.cardTitle {
+  @include eyebrow;
+  padding-bottom: 14rpx;
+}
+
+.statusRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid $color-divider;
+}
+
+.statusKey {
+  min-width: 88rpx;
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  letter-spacing: 0.06em;
+}
+
+.statusValue {
+  flex: 1;
+  font-size: 22rpx;
+  line-height: 1.65;
+  color: $color-text-primary;
+  word-break: break-all;
+}
+
+/* ---------- 说明 ---------- */
+.noteRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 14rpx 0;
+  border-top: 1rpx solid $color-divider;
+}
+
+.noteIndex {
+  @include tabular;
+  font-size: 19rpx;
+  color: $color-gold;
+  min-width: 34rpx;
+  padding-top: 4rpx;
+}
+
+.noteText {
+  flex: 1;
+  font-size: 22rpx;
+  line-height: 1.8;
+  color: $color-text-secondary;
+}
+
+.copyAction {
+  margin-top: 16rpx;
+  align-self: flex-start;
+  font-size: 21rpx;
+  color: $color-primary;
+  letter-spacing: 0.04em;
+  border-bottom: 1rpx solid rgba(31, 75, 63, 0.24);
+  padding-bottom: 2rpx;
+}
+
+/* ---------- 免责 ---------- */
+.disclaimer {
+  padding: 26rpx 24rpx;
+  background: $color-bg-secondary;
+  border-radius: $radius-md;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.disclaimerTitle {
+  @include eyebrow;
+}
+
+.disclaimerText {
+  font-size: 20rpx;
+  line-height: 1.8;
+  color: $color-text-secondary;
 }

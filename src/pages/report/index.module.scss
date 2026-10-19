@@ -2,572 +2,687 @@
 
 .page {
   min-height: 100vh;
-  padding: 24rpx $page-padding 48rpx;
+  padding: 28rpx 24rpx 96rpx;
   display: flex;
   flex-direction: column;
-  gap: 28rpx;
-  background: linear-gradient(180deg, rgba($color-primary, 0.05) 0%, transparent 260rpx);
+  gap: 20rpx;
+  background: $color-bg-page;
 }
 
-.heroCard,
-.card {
-  width: 100%;
-  max-width: $max-content-width;
-  background: $color-bg-card;
-  border-radius: $radius-xl;
-  box-shadow: $shadow-card;
-  padding: 40rpx 36rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 28rpx;
-}
-
-.statusTagRow,
-.quickActionRow,
-.referenceMain,
-.referenceList {
-  display: flex;
-}
-
-.statusTagRow,
-.quickActionRow {
-  gap: 12rpx;
-  flex-wrap: wrap;
-}
-
-.statusTag {
-  font-size: 21rpx;
-  line-height: 1.4;
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba($color-primary, 0.12);
-  color: $color-primary-dark;
-  font-weight: $font-weight-semibold;
-  width: fit-content;
-}
-
-.noticeText {
-  font-size: 23rpx;
-  line-height: 1.7;
-  color: $color-text-secondary;
-}
-
-.referenceSectionCard {
-  gap: 18rpx;
-  padding-top: 32rpx;
-  padding-bottom: 32rpx;
-}
-
-.bottomActionCard {
-  width: 100%;
-  max-width: $max-content-width;
-  padding: 0 0 12rpx;
-}
-
+/* ---------- 报头 ---------- */
 .heroCard {
-  background: linear-gradient(180deg, rgba($color-primary, 0.08) 0%, $color-bg-card 46%);
-}
-
-.grid,
-.previewGrid,
-.metricsGrid,
-.stack {
+  @include paper(34rpx 30rpx 0);
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-}
-
-.metricsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
-}
-
-.cover {
-  width: 100%;
-  height: 300rpx;
-  border-radius: 24rpx;
+  overflow: hidden;
 }
 
 .heroEyebrow {
-  font-size: 22rpx;
-  color: $color-primary-dark;
-  font-weight: $font-weight-semibold;
-  letter-spacing: 3rpx;
-  text-transform: uppercase;
+  @include eyebrow;
+  color: $color-primary;
+  margin-bottom: 18rpx;
 }
 
 .title {
+  font-family: $font-serif;
   font-size: 40rpx;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
   color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-  line-height: 1.4;
+  @include text-ellipsis-multi(3);
+}
+
+.judgement {
+  display: flex;
+  align-items: stretch;
+  gap: 18rpx;
+  margin-top: 22rpx;
+}
+
+.judgementBar {
+  width: 2rpx;
+  background: $color-primary;
+  flex-shrink: 0;
 }
 
 .desc {
-  font-size: 26rpx;
+  flex: 1;
+  font-size: $font-size-sm;
+  line-height: 1.85;
   color: $color-text-secondary;
-  line-height: 1.7;
 }
 
-.metaText,
-.bulletText,
-.compareType,
-.compareCell,
-.workLine,
-.numberText,
-.referenceBody {
-  font-size: 24rpx;
-  color: $color-text-secondary;
-  line-height: $line-height-loose;
+.heroMetrics {
+  display: flex;
+  margin-top: 30rpx;
+  border-top: 1rpx solid $color-border;
 }
 
-.sectionSummary {
-  font-size: 26rpx;
-  color: $color-text-primary;
-  line-height: 1.7;
-}
-
-.metricCard,
-.sectionCard,
-.timelineCard,
-.referenceRow {
-  padding: $spacing-md;
-  border-radius: $radius-lg;
-  background: $color-bg-page;
-  border: 1rpx solid $color-border;
+.heroMetric {
+  flex: 1;
+  padding: 18rpx 0 22rpx;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 6rpx;
+  border-right: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-right: none;
+  }
 }
 
-.sectionCard {
-  background: linear-gradient(180deg, rgba($color-primary, 0.045) 0%, rgba($color-primary, 0.02) 100%);
-  border: 1rpx solid rgba($color-primary, 0.12);
-  gap: 16rpx;
+.heroMetricLabel {
+  font-size: 17rpx;
+  letter-spacing: 0.1em;
+  color: $color-text-tertiary;
 }
 
-.sectionCardMuted {
-  background: linear-gradient(180deg, rgba($color-primary, 0.02) 0%, rgba($color-primary, 0.008) 100%);
-  border-style: dashed;
-}
-
-.metricLabel,
-.timelineYear {
-  font-size: 22rpx;
-  color: $color-text-secondary;
-  letter-spacing: 1rpx;
-}
-
-.metricValue,
-.subsectionTitle {
-  font-size: 28rpx;
+.heroMetricValue {
+  @include tabular;
+  font-size: 24rpx;
   color: $color-text-primary;
-  font-weight: $font-weight-semibold;
+}
+
+/* ---------- 通用卡片 ---------- */
+.card {
+  @include paper(28rpx 30rpx);
+  display: flex;
+  flex-direction: column;
 }
 
 .sectionTitle {
-  font-size: 38rpx;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-  line-height: 1.35;
+  @include eyebrow;
+  padding-bottom: 14rpx;
+  margin-bottom: 16rpx;
+  border-bottom: 1rpx solid $color-border;
 }
 
-.referenceTitle,
-.timelineTitle,
-.highlightText {
-  font-size: 26rpx;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-}
-
-.referenceList,
-.referenceMain {
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.highlightText {
-  color: $color-primary-dark;
+.sectionSummary {
   font-size: 24rpx;
-  padding: 6rpx 16rpx;
-  border-radius: 999rpx;
-  background: rgba($color-primary, 0.1);
+  line-height: 1.9;
+  color: $color-text-primary;
+}
+
+.noticeText {
+  font-size: 20rpx;
+  line-height: 1.75;
+  color: $color-text-tertiary;
+  margin-top: 8rpx;
+}
+
+.metaText {
+  font-size: 22rpx;
+  line-height: 1.95;
+  color: $color-text-secondary;
+}
+
+.emptyText {
+  font-size: 21rpx;
+  line-height: 1.8;
+  color: $color-text-tertiary;
+}
+
+/* ---------- 状态 ---------- */
+.statusTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.statusTag {
+  font-size: 17rpx;
+  letter-spacing: 0.08em;
+  color: $color-text-secondary;
+  border: 1rpx solid $color-border-strong;
+  border-radius: $radius-xs;
+  padding: 3rpx 10rpx;
+}
+
+.quickActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.actionButton {
+  @include button-reset;
+  flex: 0 0 auto;
+  height: 62rpx;
+  padding: 0 22rpx;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  color: $color-primary-dark;
+  font-size: 21rpx;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 流程预览 ---------- */
+.previewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.previewCard {
+  width: calc(50% - 5rpx);
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 16rpx 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.stepTitle {
+  font-size: 21rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.stepDesc {
+  font-size: 19rpx;
+  line-height: 1.65;
+  color: $color-text-tertiary;
+}
+
+/* ---------- 分组 ---------- */
+.groupHead {
+  display: flex;
+  gap: 18rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 1rpx solid $color-border;
+}
+
+.groupIndex {
+  @include tabular;
+  font-size: 20rpx;
+  color: $color-gold;
+  padding-top: 8rpx;
+  letter-spacing: 0.06em;
+}
+
+.groupTitleWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.groupTitle {
+  font-family: $font-serif;
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: $color-text-primary;
+}
+
+.groupDesc {
+  font-size: 20rpx;
+  line-height: 1.75;
+  color: $color-text-tertiary;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 章节 ---------- */
+.sectionCard {
+  display: flex;
+  flex-direction: column;
+  padding: 26rpx 0 22rpx;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 2rpx;
+  }
+}
+
+.sectionCardMuted {
+  opacity: 0.65;
 }
 
 .sectionHeaderRow {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.groupDesc {
-  font-size: 22rpx;
-  color: $color-text-secondary;
-  line-height: $line-height-loose;
-}
-
-.investmentStack {
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
-}
-
-.previewGrid {
+  align-items: baseline;
   gap: 12rpx;
+  flex-wrap: wrap;
 }
 
-.previewCard {
-  padding: 20rpx;
-  border-radius: $radius-lg;
-  background: rgba($color-primary, 0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 10rpx;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.045);
+.sectionNumber {
+  @include tabular;
+  font-size: 19rpx;
+  color: $color-gold;
+  letter-spacing: 0.06em;
 }
 
-.stepTitle {
-  font-size: 24rpx;
+.subsectionTitle {
+  font-family: $font-serif;
+  font-size: 28rpx;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   color: $color-text-primary;
-  font-weight: $font-weight-semibold;
 }
 
-.stepDesc {
-  font-size: 22rpx;
-  color: $color-text-secondary;
-  line-height: 1.65;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.highlightText {
+  margin-left: auto;
+  font-size: 17rpx;
+  letter-spacing: 0.06em;
+  color: $color-text-tertiary;
+  border: 1rpx solid $color-border;
+  border-radius: $radius-xs;
+  padding: 2rpx 8rpx;
 }
 
-.metricsPanel {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding: 24rpx;
-  border-radius: $radius-lg;
-  background: linear-gradient(180deg, rgba($color-primary, 0.07) 0%, rgba($color-primary, 0.025) 100%);
-  border: 1rpx solid rgba($color-primary, 0.18);
-}
-
-.metricCard,
-.timelineCard {
-  background: $color-bg-card;
-  border: none;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.045);
-}
-
-.metricsTitle {
-  font-size: 24rpx;
-  color: $color-primary-dark;
-  font-weight: $font-weight-semibold;
-  letter-spacing: 1rpx;
-}
-
+/* ---------- 正文条目 ---------- */
 .bulletRow {
   display: flex;
-  gap: 12rpx;
   align-items: flex-start;
+  gap: 14rpx;
+  margin-top: 12rpx;
 }
 
 .bulletDot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: $radius-round;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
   background: $color-primary;
   margin-top: 14rpx;
   flex-shrink: 0;
 }
 
-.emptyText {
-  font-size: 22rpx;
-  line-height: 1.7;
-  color: $color-text-secondary;
-}
-
-.timelineStack {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.compareTable,
-.workStack {
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
-}
-
-.compareRow {
-  display: grid;
-  grid-template-columns: 170rpx 1fr 1fr;
-  gap: 12rpx;
-  padding: 20rpx;
-  border-radius: $radius-md;
-  background: $color-bg-card;
-  border: none;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.04);
-}
-
-.compareHeader {
-  background: rgba($color-primary, 0.12);
-}
-
-.compareType {
-  color: $color-text-primary;
-  font-weight: $font-weight-medium;
-}
-
-.compareTypeWrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4rpx;
-}
-
-.compareSeverity {
-  font-size: 21rpx;
-  line-height: 1.5;
-  color: $color-text-secondary;
-}
-
-.workCard {
-  padding: $spacing-md;
-  border-radius: $radius-lg;
-  background: $color-bg-card;
-  border: none;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.045);
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.workTitle {
-  font-size: 26rpx;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-  line-height: $line-height-tight;
-}
-
-.refInline,
-.referenceId {
-  font-size: 22rpx;
-  color: $color-text-secondary;
-  font-weight: $font-weight-normal;
-  font-style: normal;
-  line-height: 1.6;
-}
-
-.workIntro {
+.bulletText {
+  flex: 1;
   font-size: 23rpx;
-  color: $color-text-primary;
-  line-height: 1.7;
-}
-
-.investmentCard,
-.signalCard {
-  padding: $spacing-md;
-  border-radius: $radius-lg;
-  background: $color-bg-card;
-  border: none;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.045);
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.investmentHeader {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10rpx;
-  flex-wrap: wrap;
-}
-
-.investmentTag,
-.investmentType,
-.signalWindow {
-  font-size: 21rpx;
-  line-height: 1.4;
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba($color-primary, 0.12);
-  color: $color-primary-dark;
-  font-weight: $font-weight-semibold;
-  width: fit-content;
-}
-
-.investmentTitle {
-  font-size: 26rpx;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-  line-height: 1.55;
-}
-
-.investmentBody,
-.referenceMeta,
-.referenceLink {
-  font-size: 23rpx;
+  line-height: 1.85;
   color: $color-text-secondary;
-  line-height: 1.7;
 }
 
+/* ---------- Claim ---------- */
 .claimBlockWrap {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
-}
-
-.keywordBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-  padding: 20rpx;
-  border-radius: $radius-lg;
-  background: $color-bg-card;
-  border: none;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.04);
-}
-
-.keywordLabel {
-  font-size: 22rpx;
-  color: $color-text-secondary;
-}
-
-.keywordRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
-}
-
-.keywordChip {
-  font-size: 22rpx;
-  color: $color-primary-dark;
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba($color-primary, 0.12);
+  gap: 14rpx;
+  margin-top: 16rpx;
 }
 
 .claimBlock {
-  padding: $spacing-md;
-  border-radius: $radius-lg;
-  background: $color-bg-card;
-  border: none;
-  box-shadow: 0 4rpx 14rpx rgba(141, 107, 22, 0.045);
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
-}
-
-.claimLabel {
-  font-size: 24rpx;
-  color: $color-primary-dark;
-  font-weight: $font-weight-semibold;
-  letter-spacing: 1rpx;
-}
-
-.numberRow {
-  display: flex;
-  gap: 10rpx;
-  align-items: flex-start;
-}
-
-.numberIndex {
-  font-size: 26rpx;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-  width: 28rpx;
-  flex-shrink: 0;
-}
-
-.referenceList {
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 18rpx 20rpx;
   display: flex;
   flex-direction: column;
   gap: 8rpx;
 }
 
-.referenceRow {
-  padding: 14rpx 18rpx;
-  flex-direction: row;
+.claimLabel {
+  @include eyebrow;
+  font-size: 18rpx;
+  color: $color-primary;
+}
+
+.numberRow {
+  display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12rpx;
+  gap: 10rpx;
+}
+
+.numberIndex {
+  @include tabular;
+  font-size: 19rpx;
+  color: $color-gold;
+  padding-top: 4rpx;
+}
+
+.numberText {
+  flex: 1;
+  font-size: 22rpx;
+  line-height: 1.8;
+  color: $color-text-secondary;
+}
+
+/* ---------- 夸大对照表 ---------- */
+.compareTable {
+  margin-top: 16rpx;
+  border: 1rpx solid $color-border;
+  border-radius: $radius-sm;
+  overflow: hidden;
+}
+
+.compareRow {
+  display: flex;
+  border-top: 1rpx solid $color-divider;
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+.compareHeader {
+  background: #f6f3ea;
+}
+
+.compareType {
+  flex: 0 0 30%;
+  padding: 12rpx 14rpx;
+  font-size: 19rpx;
+  line-height: 1.7;
+  color: $color-text-secondary;
+}
+
+.compareHeader .compareType,
+.compareHeader .compareCell {
+  @include eyebrow;
+  font-size: 16rpx;
+  color: $color-text-tertiary;
+}
+
+.compareCell {
+  flex: 1;
+  padding: 12rpx 14rpx;
+  font-size: 20rpx;
+  line-height: 1.75;
+  color: $color-text-secondary;
+  border-left: 1rpx solid $color-divider;
+}
+
+.compareTypeWrap {
+  flex: 0 0 30%;
+  padding: 12rpx 14rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.compareTypeWrap .compareType {
+  padding: 0;
+}
+
+.compareSeverity {
+  font-size: 16rpx;
+  color: $color-accent;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- 时间线 ---------- */
+.timelineStack {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16rpx;
+}
+
+.timelineCard {
+  padding: 0 0 20rpx 20rpx;
+  border-left: 1rpx solid $color-border-strong;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.timelineYear {
+  @include tabular;
+  font-size: 18rpx;
+  color: $color-gold;
+  letter-spacing: 0.08em;
+}
+
+.timelineTitle {
+  font-size: 23rpx;
+  line-height: 1.7;
+  color: $color-text-primary;
+}
+
+.timelineDesc {
+  font-size: 20rpx;
+  line-height: 1.7;
+  color: $color-text-tertiary;
+}
+
+/* ---------- 相关团队 ---------- */
+.workStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.workCard {
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 18rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.workTitle {
+  font-size: 22rpx;
+  font-weight: $font-weight-semibold;
+  line-height: 1.7;
+  color: $color-text-primary;
+}
+
+.workIntro,
+.workLine {
+  font-size: 20rpx;
+  line-height: 1.75;
+  color: $color-text-secondary;
+}
+
+.refInline {
+  @include tabular;
+  font-size: 17rpx;
+  color: $color-primary;
+}
+
+/* ---------- 关键词 ---------- */
+.keywordBlock {
+  margin-top: 14rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.keywordLabel {
+  @include eyebrow;
+  font-size: 17rpx;
+}
+
+.keywordRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.keywordChip {
+  font-size: 18rpx;
+  color: $color-text-secondary;
+  border: 1rpx solid $color-border;
+  border-radius: $radius-round;
+  padding: 4rpx 14rpx;
+}
+
+/* ---------- 指标面板 ---------- */
+.metricsPanel {
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 18rpx 20rpx;
+  margin-top: 6rpx;
+}
+
+.metricsTitle {
+  @include eyebrow;
+  font-size: 17rpx;
+  margin-bottom: 12rpx;
+}
+
+.metricsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.metricCard {
+  width: calc(50% - 4rpx);
   background: $color-bg-card;
-  border: none;
-  box-shadow: 0 3rpx 12rpx rgba(141, 107, 22, 0.04);
+  border: 1rpx solid $color-border;
+  border-radius: $radius-xs;
+  padding: 12rpx 14rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  box-sizing: border-box;
+}
+
+.metricLabel {
+  font-size: 17rpx;
+  color: $color-text-tertiary;
+  letter-spacing: 0.04em;
+}
+
+.metricValue {
+  @include tabular;
+  font-size: 21rpx;
+  color: $color-text-primary;
+}
+
+/* ---------- 投资机会 / 信号 ---------- */
+.investmentStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+
+.investmentCard {
+  border-left: 2rpx solid $color-primary;
+  background: $color-bg-page;
+  border-radius: 0 $radius-sm $radius-sm 0;
+  padding: 16rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.investmentHeader {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.investmentTag {
+  font-size: 16rpx;
+  color: $color-primary;
+  border: 1rpx solid rgba(31, 75, 63, 0.32);
+  border-radius: $radius-xs;
+  padding: 2rpx 8rpx;
+  letter-spacing: 0.06em;
+}
+
+.investmentType {
+  font-size: 16rpx;
+  color: $color-text-tertiary;
+  letter-spacing: 0.06em;
+}
+
+.investmentTitle {
+  font-size: 23rpx;
+  font-weight: $font-weight-medium;
+  line-height: 1.7;
+  color: $color-text-primary;
+  margin-top: 4rpx;
+}
+
+.investmentBody {
+  font-size: 20rpx;
+  line-height: 1.75;
+  color: $color-text-secondary;
+}
+
+.signalCard {
+  border-left: 2rpx solid $color-gold;
+  background: $color-bg-page;
+  border-radius: 0 $radius-sm $radius-sm 0;
+  padding: 16rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.signalWindow {
+  @include tabular;
+  font-size: 17rpx;
+  color: $color-gold;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- 参考文献 ---------- */
+.referenceSectionCard {
+  margin-top: 4rpx;
+}
+
+.referenceList {
+  display: flex;
+  flex-direction: column;
+}
+
+.referenceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  padding: 14rpx 0;
+  border-top: 1rpx solid $color-divider;
+
+  &:first-child {
+    border-top: none;
+  }
 }
 
 .referenceMain {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 12rpx;
   flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
   min-width: 0;
 }
 
 .referenceId {
-  margin-bottom: 0;
+  @include tabular;
+  font-size: 17rpx;
+  color: $color-gold;
   flex-shrink: 0;
 }
 
 .referenceTitle {
   flex: 1;
-  min-width: 0;
-  font-weight: $font-weight-medium;
-  line-height: 1.6;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.inlineActionButton {
-  @include button-reset;
-  min-width: 140rpx;
-  height: 56rpx;
-  padding: 0 16rpx;
-  border-radius: 999rpx;
-  background: rgba($color-primary, 0.12);
-  color: $color-primary-dark;
-  font-size: 22rpx;
-  font-weight: $font-weight-medium;
-  flex-shrink: 0;
+  font-size: 21rpx;
+  line-height: 1.7;
+  color: $color-text-secondary;
 }
 
 .referenceActionButton {
   @include button-reset;
-  width: fit-content;
-  min-width: 112rpx;
-  height: 44rpx;
+  flex: 0 0 auto;
+  height: 50rpx;
   padding: 0 14rpx;
-  border-radius: 999rpx;
-  background: rgba($color-primary, 0.1);
-  color: $color-primary-dark;
-  font-size: 19rpx;
-  font-weight: $font-weight-medium;
-  flex-shrink: 0;
-  margin-top: 2rpx;
+  border: 1rpx solid $color-border-strong;
+  border-radius: $radius-xs;
+  background: transparent;
+  font-size: 17rpx;
+  color: $color-primary;
 }
 
-.quickActionRow {
-  display: flex;
-  gap: 12rpx;
-  flex-wrap: wrap;
-}
-
-.actionButton {
-  @include button-reset;
-  width: auto;
-  min-width: 220rpx;
-  height: $button-height-sm;
-  border-radius: $radius-button;
-  background: $color-primary-soft;
-  color: $color-primary-dark;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+/* ---------- 底部 ---------- */
+.bottomActionCard {
+  margin-top: 18rpx;
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 
 .bottomPrimaryButton {
@@ -575,8 +690,12 @@
   width: 100%;
   height: $button-height-lg;
   border-radius: $radius-button;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  background: $color-primary;
   color: $color-text-white;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-size: 27rpx;
+  letter-spacing: 0.08em;
+
+  &:active {
+    opacity: 0.9;
+  }
 }

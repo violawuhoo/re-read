@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Re-Read · 界面设计稿</title>
+<style>
+  :root{
+    --paper:#f6f4ee; --card:#fff; --ink:#17201c; --ink2:#4c554f; --ink3:#7c857e;
+    --line:#e4dfd3; --divider:#efece4; --strong:#cfc8b7;
+    --primary:#1f4b3f; --primary-soft:#e8efea; --accent:#a65a3a; --gold:#c0a24a;
+    --serif:'Songti SC','Noto Serif CJK SC','SimSun',serif;
+    --sans:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    --mono:'SF Mono','DIN Alternate',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#e9e6de;font-family:var(--sans);color:var(--ink);padding:32px 28px 48px;}
+  .board{display:flex;gap:26px;align-items:flex-start;justify-content:center;}
+  .frame{width:375px;background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 8px 28px rgba(23,32,28,.12);position:relative;}
+  .statusbar{height:44px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink3);letter-spacing:.08em;border-bottom:1px solid var(--divider);}
+  .screen{height:768px;overflow:hidden;position:relative;}
+  .scroll{height:100%;overflow:hidden;padding:20px 16px 24px;}
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:54px;background:#fff;border-top:1px solid var(--divider);display:flex;align-items:center;justify-content:space-around;font-size:12px;color:var(--ink3);}
+  .tabbar .on{color:var(--primary);}
+  .cap{text-align:center;font-size:12px;color:#7b817a;letter-spacing:.1em;margin-top:10px;}
+
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink3);}
+  .eyebrow.p{color:var(--primary);}
+
+  /* ---------- 首页 ---------- */
+  .masthead{display:flex;flex-direction:column;gap:9px;padding-top:6px;}
+  .headline{font-family:var(--serif);font-size:26px;line-height:1.32;letter-spacing:.02em;font-weight:500;}
+  .slogan{font-size:12px;line-height:1.85;color:var(--ink2);}
+  .inputCard{margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:11px;}
+  .ih{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .ih b{font-size:12px;font-weight:600;letter-spacing:.04em;}
+  .ih span{font-family:var(--mono);font-size:9.5px;color:var(--ink3);}
+  .inputbox{border:1px solid var(--line);background:#fbfaf6;border-radius:5px;height:48px;display:flex;align-items:center;padding:0 11px;font-size:12.5px;color:#a9b0a9;}
+  .btn{height:46px;border-radius:4px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13.5px;letter-spacing:.08em;}
+  .notes{margin-top:20px;border-top:1px solid var(--line);padding-top:15px;display:flex;flex-direction:column;gap:7px;}
+  .nrow{display:flex;gap:8px;font-size:11.5px;line-height:1.7;color:var(--ink2);}
+  .nrow i{font-family:var(--mono);font-style:normal;font-size:10px;color:var(--gold);min-width:17px;padding-top:1px;}
+  .foot{font-size:10px;color:var(--ink3);line-height:1.7;margin-top:5px;}
+
+  /* ---------- 历史 ---------- */
+  .pagehead{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .pagehead h1{font-family:var(--serif);font-size:22px;font-weight:500;letter-spacing:.04em;}
+  .pagehead span{font-family:var(--mono);font-size:10px;color:var(--ink3);}
+  .entry{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--divider);}
+  .side{min-width:46px;padding-top:2px;}
+  .side b{display:block;font-family:var(--mono);font-size:13px;color:var(--ink2);font-weight:400;}
+  .side span{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.08em;}
+  .emain{flex:1;display:flex;flex-direction:column;gap:5px;}
+  .etitle{font-family:var(--serif);font-size:15px;line-height:1.55;}
+  .eclaim{font-size:11px;line-height:1.75;color:var(--ink2);}
+  .efoot{display:flex;justify-content:space-between;align-items:center;margin-top:1px;}
+  .etag{font-size:9.5px;color:var(--ink3);border:1px solid var(--line);border-radius:2px;padding:1.5px 5px;letter-spacing:.06em;}
+  .earrow{font-size:10px;color:var(--primary);}
+  .tpl{margin-top:12px;padding:12px;border:1px dashed var(--strong);border-radius:5px;}
+  .tpl b{display:block;font-size:10.5px;letter-spacing:.1em;color:var(--ink2);font-weight:400;}
+  .tpl span{font-size:11px;color:var(--primary);}
+
+  /* ---------- 报告 ---------- */
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:17px 15px 0;overflow:hidden;}
+  .hero h2{font-family:var(--serif);font-size:20px;line-height:1.55;font-weight:500;margin-top:9px;}
+  .judge{display:flex;gap:9px;margin-top:11px;}
+  .judge .bar{width:1px;background:var(--primary);}
+  .judge p{flex:1;font-size:12px;line-height:1.85;color:var(--ink2);}
+  .hmetrics{display:flex;margin-top:15px;border-top:1px solid var(--line);}
+  .hm{flex:1;padding:9px 0 11px;border-right:1px solid var(--divider);}
+  .hm:last-child{border-right:none;}
+  .hm b{display:block;font-size:8.5px;letter-spacing:.1em;color:var(--ink3);font-weight:400;}
+  .hm span{font-family:var(--mono);font-size:12px;color:var(--ink);}
+  .card2{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:14px 15px;margin-top:10px;}
+  .sect{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2);padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+  .tags{display:flex;gap:4px;margin-bottom:6px;}
+  .tag{font-size:8.5px;color:var(--ink2);border:1px solid var(--strong);border-radius:2px;padding:1.5px 5px;letter-spacing:.08em;}
+  .p{font-size:12px;line-height:1.9;color:var(--ink);}
+  .notice{font-size:10px;color:var(--ink3);line-height:1.7;margin-top:4px;}
+  .grouphead{display:flex;gap:9px;padding-bottom:9px;border-bottom:1px solid var(--line);}
+  .gidx{font-family:var(--mono);font-size:10px;color:var(--gold);padding-top:4px;}
+  .gtitle{font-family:var(--serif);font-size:15px;font-weight:500;letter-spacing:.04em;}
+  .gdesc{font-size:10px;line-height:1.75;color:var(--ink3);margin-top:3px;}
+  .section{padding:13px 0 11px;border-bottom:1px solid var(--divider);}
+  .section:last-child{border-bottom:none;padding-bottom:1px;}
+  .sh{display:flex;align-items:baseline;gap:6px;}
+  .sn{font-family:var(--mono);font-size:9.5px;color:var(--gold);}
+  .st{font-family:var(--serif);font-size:14px;font-weight:500;letter-spacing:.03em;}
+  .hl{margin-left:auto;font-size:8.5px;color:var(--ink3);border:1px solid var(--line);border-radius:2px;padding:1px 4px;}
+  .ss{font-size:12px;line-height:1.9;color:var(--ink);margin-top:5px;}
+  .bullet{display:flex;gap:7px;margin-top:6px;}
+  .bullet i{width:2.5px;height:2.5px;border-radius:50%;background:var(--primary);margin-top:7px;flex-shrink:0;}
+  .bullet p{flex:1;font-size:11.5px;line-height:1.85;color:var(--ink2);}
+  .ctable{margin-top:8px;border:1px solid var(--line);border-radius:3px;overflow:hidden;}
+  .crow{display:flex;border-top:1px solid var(--divider);}
+  .crow:first-child{border-top:none;background:#f6f3ea;}
+  .crow div{flex:1;padding:6px 7px;font-size:10px;line-height:1.7;color:var(--ink2);border-left:1px solid var(--divider);}
+  .crow div:first-child{flex:0 0 30%;border-left:none;}
+  .crow.head div{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--ink3);}
+
+  /* ---------- 我的 ---------- */
+  .quota{background:var(--card);border:1px solid var(--line);border-radius:7px;padding:15px;margin-top:14px;}
+  .qnum{display:flex;align-items:baseline;gap:5px;margin-top:6px;}
+  .qnum b{font-family:var(--mono);font-size:32px;font-weight:400;color:var(--primary);letter-spacing:-.02em;line-height:1.1;}
+  .qnum span{font-family:var(--mono);font-size:12px;color:var(--ink3);}
+  .qnum em{margin-left:auto;font-style:normal;font-size:10px;color:var(--ink2);border:1px solid var(--line);border-radius:2px;padding:2px 6px;}
+  .qbar{height:2px;background:#ece8dd;margin-top:9px;}
+  .qbar i{display:block;height:100%;width:35%;background:var(--primary);}
+  .qnote{font-size:10px;color:var(--ink3);line-height:1.7;margin-top:7px;}
+  .srow{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--divider);}
+  .srow k{min-width:44px;font-size:11px;color:var(--ink3);letter-spacing:.06em;}
+  .srow v{flex:1;font-size:11px;color:var(--ink);line-height:1.6;}
+  .disc{margin-top:12px;padding:13px 12px;background:#efebe1;border-radius:5px;}
+  .disc p{font-size:10px;line-height:1.8;color:var(--ink2);margin-top:5px;}
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- 首页 -->
+  <div>
+    <div class="frame">
+      <div class="screen">
+        <div class="scroll">
+          <div class="masthead">
+            <div class="eyebrow p">RE-READ / 公众号解读</div>
+            <div class="headline">读完公众号，<br/>再回原文</div>
+            <div class="slogan">先拿到一版结构化判断，再决定这篇值不值得你花时间读原文。</div>
+          </div>
+          <div class="inputCard">
+            <div class="ih"><b>文章链接</b><span>仅支持 mp.weixin.qq.com</span></div>
+            <div class="inputbox">长按此处粘贴链接</div>
+            <div class="btn">开始解读</div>
+          </div>
+          <div class="notes">
+            <div class="eyebrow">操作三步</div>
+            <div class="nrow"><i>01</i>公众号右上角「···」→ 复制链接</div>
+            <div class="nrow"><i>02</i>回到这里，长按输入框粘贴</div>
+            <div class="nrow"><i>03</i>等待 1–3 分钟，报告会自动打开</div>
+            <div class="foot">报告由模型生成，仅供参考，不构成投资建议。</div>
+          </div>
+        </div>
+        <div class="tabbar"><span class="on">解读</span><span>历史</span></div>
+      </div>
+    </div>
+    <div class="cap">01 首页</div>
+  </div>
+
+  <!-- 历史 -->
+  <div>
+    <div class="frame">
+      <div class="screen">
+        <div class="scroll">
+          <div class="pagehead"><h1>历史</h1><span>3 篇</span></div>
+          <div class="entry">
+            <div class="side"><b>10/19</b><span>2026</span></div>
+            <div class="emain">
+              <div class="etitle">生成式蛋白设计公司发布新平台，公众号称“药物研发进入自动驾驶”</div>
+              <div class="eclaim">结论：标题外推明显，平台能力与论文支撑之间存在缺口，适合作为线索入口。</div>
+              <div class="efoot"><span class="etag">A+C混合</span><span class="earrow">查看 →</span></div>
+            </div>
+          </div>
+          <div class="entry">
+            <div class="side"><b>10/18</b><span>2026</span></div>
+            <div class="emain">
+              <div class="etitle">多模态分子基础模型论文解读：一次结构-序列联合建模的尝试</div>
+              <div class="eclaim">结论：可作为快速导读，但不能替代原文判断，实验对照仍缺第三方复现。</div>
+              <div class="efoot"><span class="etag">A类论文解读</span><span class="earrow">查看 →</span></div>
+            </div>
+          </div>
+          <div class="entry">
+            <div class="side"><b>10/16</b><span>2026</span></div>
+            <div class="emain">
+              <div class="etitle">某 AI4S 产品发布会：叙事很强，技术材料没有跟上</div>
+              <div class="eclaim">结论：信息源可信度低，建议等待技术报告或客户案例发布后再判断。</div>
+              <div class="efoot"><span class="etag">样例</span><span class="earrow">查看 →</span></div>
+            </div>
+          </div>
+          <div class="tpl"><b>模板报告</b><span>查看完整报告的结构与排版 →</span></div>
+        </div>
+        <div class="tabbar"><span>解读</span><span class="on">历史</span></div>
+      </div>
+    </div>
+    <div class="cap">02 历史</div>
+  </div>
+
+  <!-- 报告 -->
+  <div>
+    <div class="frame">
+      <div class="screen">
+        <div class="scroll" style="padding-top:14px;">
+          <div class="hero">
+            <div class="eyebrow p">解读报告 / A+C混合</div>
+            <h2>生成式蛋白设计公司发布新平台，公众号称“药物研发进入自动驾驶”</h2>
+            <div class="judge">
+              <div class="bar"></div>
+              <p>判断：标题把平台能力外推成了行业终局，技术上更像一次工程整合，值得读原文但要带着问题。</p>
+            </div>
+            <div class="hmetrics">
+              <div class="hm"><b>可信度</b><span>中</span></div>
+              <div class="hm"><b>夸大</b><span>高</span></div>
+              <div class="hm"><b>成熟度</b><span>TRL 4/9</span></div>
+              <div class="hm"><b>阶段</b><span>概念期</span></div>
+            </div>
+          </div>
+
+          <div class="card2">
+            <div class="sect">报告状态</div>
+            <div class="tags"><span class="tag">AI 生成报告</span><span class="tag">部分模块降级</span></div>
+            <div class="p">已完成 SOP 六模块分析 · A+C混合</div>
+            <div class="notice">本报告由人工智能模型生成，仅供参考，不构成任何投资建议。</div>
+          </div>
+
+          <div class="card2">
+            <div class="grouphead">
+              <div class="gidx">01</div>
+              <div>
+                <div class="gtitle">公众号文章评价</div>
+                <div class="gdesc">判断这篇公众号讲得是否准确，哪些地方值得直接参考，哪些需要回到原文核对。</div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="sh"><span class="sn">01</span><span class="st">质量评估</span><span class="hl">可信度 中</span></div>
+              <div class="ss">信息整体可读，但标题或结论存在外推，关键判断仍需回到原文核对。</div>
+              <div class="bullet"><i></i><p>公众号引用的三项指标中，只有一项在论文附录里给出了对照实验。</p></div>
+            </div>
+            <div class="section">
+              <div class="sh"><span class="sn">02</span><span class="st">夸大程度</span></div>
+              <div class="ss">标题与结论外推较多，本篇更适合作为线索入口。</div>
+              <div class="ctable">
+                <div class="crow head"><div>问题</div><div>公众号表述</div><div>实际情况</div></div>
+                <div class="crow"><div>结论超范围</div><div>“药物研发进入自动驾驶”</div><div>论文只覆盖单一靶点的小规模验证</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">03 报告</div>
+  </div>
+
+  <!-- 我的 -->
+  <div>
+    <div class="frame">
+      <div class="screen">
+        <div class="scroll">
+          <div class="masthead" style="padding-bottom:11px;border-bottom:1px solid var(--line);">
+            <div class="eyebrow p">RE-READ / 设置</div>
+            <div class="headline" style="font-size:22px;">今天的状态</div>
+          </div>
+          <div class="quota">
+            <div class="eyebrow">今日解读额度</div>
+            <div class="qnum"><b>7</b><span>/ 20</span><em>刷新</em></div>
+            <div class="qbar"><i></i></div>
+            <div class="qnote">失败的任务会自动退回额度。剩余 13 次，按北京时间次日重置。</div>
+          </div>
+          <div class="card2">
+            <div class="sect">运行状态</div>
+            <div class="srow"><k>服务</k><v>正常 · 云托管 reread-api</v></div>
+            <div class="srow"><k>模型</k><v>kimi / kimi-k2.6</v></div>
+            <div class="srow"><k>存储</k><v>云数据库</v></div>
+          </div>
+          <div class="card2">
+            <div class="sect">使用说明</div>
+            <div class="nrow" style="padding:7px 0;border-top:1px solid var(--divider);"><i>01</i>在公众号文章里复制链接，回到解读页长按粘贴。</div>
+            <div class="nrow" style="padding:7px 0;border-top:1px solid var(--divider);"><i>02</i>单篇报告需要 1–3 分钟，期间保持页面在前台。</div>
+            <div class="nrow" style="padding:7px 0;border-top:1px solid var(--divider);"><i>03</i>同一篇文章再次解读会复用已有报告。</div>
+          </div>
+          <div class="disc">
+            <div class="eyebrow">免责声明</div>
+            <p>报告内容由人工智能模型生成，会明确标注为 AI 生成内容。它不构成任何投资建议，也不对信息的完整性与准确性作出保证。</p>
+          </div>
+        </div>
+        <div class="tabbar"><span>解读</span><span>历史</span></div>
+      </div>
+    </div>
+    <div class="cap">04 我的</div>
+  </div>
+
+</div>
+</body>
+</html>

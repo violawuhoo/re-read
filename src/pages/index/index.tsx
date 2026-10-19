@@ -4,6 +4,8 @@ import Taro from '@tarojs/taro';
 import { analyzeArticleUrlSync, createArticleUrlTask, normalizeArticleUrl, waitForReport } from '@/services/reread';
 import styles from './index.module.scss';
 
+const STEPS = ['公众号右上角「···」→ 复制链接', '回到这里，长按输入框粘贴', '等待 1–3 分钟，报告会自动打开'];
+
 const getErrorMessage = (error: unknown): string => (error instanceof Error ? error.message : '链接解读失败，请稍后重试');
 
 const getErrorToastTitle = (error: unknown): string => {
@@ -34,6 +36,7 @@ const getErrorToastTitle = (error: unknown): string => {
 
 const IndexPage: React.FC = () => {
   const [articleUrl, setArticleUrl] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState('');
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -49,37 +52,35 @@ const IndexPage: React.FC = () => {
 
     try {
       setIsGenerating(true);
-      setGenerationStatus('正在创建分析任务...');
+      setGenerationStatus('正在创建分析任务');
       setGenerationProgress(4);
       setGenerationError('');
 
       const task = await createArticleUrlTask(nextUrl);
 
       if (task?.status === 'completed' && task.reportId) {
-        setGenerationStatus('检测到已生成报告，正在打开...');
+        setGenerationStatus('已命中历史报告，正在打开');
         setGenerationProgress(100);
         await Taro.navigateTo({ url: `/pages/report/index?id=${task.reportId}` });
         return;
       }
 
       if (task?.taskId) {
-        setGenerationStatus('任务已创建，准备开始分析...');
+        setGenerationStatus('任务已创建，开始分析');
         setGenerationProgress(8);
         const reportId = await waitForReport(task.taskId, (status, progress) => {
           setGenerationStatus(status);
           setGenerationProgress(progress);
         });
-        setGenerationStatus('报告已生成，正在打开...');
+        setGenerationStatus('报告已生成，正在打开');
         setGenerationProgress(100);
         await Taro.navigateTo({ url: `/pages/report/index?id=${reportId}` });
         return;
       }
 
-      // 任务队列不可用时才走同步兜底
-      setGenerationStatus('异步队列不可用，正在直接生成报告...');
+      setGenerationStatus('异步队列不可用，改为直接生成');
       setGenerationProgress(12);
       const nextReport = await analyzeArticleUrlSync(nextUrl);
-      setGenerationStatus('报告已生成，正在打开...');
       setGenerationProgress(100);
       await Taro.navigateTo({ url: `/pages/report/index?id=${nextReport.id}` });
     } catch (error) {
@@ -96,56 +97,72 @@ const IndexPage: React.FC = () => {
   return (
     <View className={styles.page}>
       <View className={styles.shell}>
-        <View className={styles.brandBlock}>
-          <Text className={styles.brand}>Re-Read</Text>
-          <Text className={styles.slogan}>公众号读完之后，原文之前。</Text>
+        <View className={styles.masthead}>
+          <Text className={styles.eyebrow}>RE-READ / 公众号解读</Text>
+          <Text className={styles.headline}>读完公众号，{'\n'}再回原文</Text>
+          <Text className={styles.slogan}>先拿到一版结构化判断，再决定这篇值不值得你花时间读原文。</Text>
         </View>
 
-        <View className={styles.importCard}>
-          <View className={styles.inputWrap}>
+        <View className={styles.inputCard}>
+          <View className={styles.inputHeader}>
+            <Text className={styles.inputLabel}>文章链接</Text>
+            <Text className={styles.inputHint}>仅支持 mp.weixin.qq.com</Text>
+          </View>
+          <View className={`${styles.inputWrap} ${isFocused ? styles.inputWrapFocus : ''}`}>
             <Input
               className={styles.urlInput}
               type='text'
               maxlength={-1}
               value={articleUrl}
-              placeholder='长按输入框，粘贴 mp.weixin.qq.com 文章链接'
+              placeholder='长按此处粘贴链接'
+              placeholderStyle='color:#a9b0a9'
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               onInput={(event) => setArticleUrl(event.detail.value)}
             />
           </View>
-          <View className={styles.buttonGroup}>
-            <Button className={styles.primaryButton} loading={isGenerating} onClick={handleAnalyzeLink}>
-              {isGenerating ? '生成中' : '生成报告'}
-            </Button>
-          </View>
+          <Button className={styles.primaryButton} loading={isGenerating} onClick={handleAnalyzeLink}>
+            {isGenerating ? '正在解读' : '开始解读'}
+          </Button>
+
           {isGenerating ? (
-            <View className={styles.helperBlock}>
-              <Text className={styles.helperTitle}>正在生成报告</Text>
+            <View className={styles.progressBlock}>
+              <View className={styles.progressHead}>
+                <Text className={styles.progressStage}>{generationStatus || '准备中'}</Text>
+                <Text className={styles.progressValue}>{generationProgress}%</Text>
+              </View>
               <View className={styles.progressTrack}>
                 <View className={styles.progressFill} style={{ width: `${generationProgress}%` }} />
               </View>
-              <Text className={styles.progressValue}>{generationProgress}%</Text>
-              <Text className={styles.helperText}>{generationStatus || '首次生成通常需要 1-3 分钟，请保持页面停留。'}</Text>
+              <Text className={styles.progressNote}>生成期间请保持页面在前台，首次通常需要 1–3 分钟。</Text>
             </View>
           ) : null}
+
           {generationError ? (
-            <View className={styles.helperBlock}>
-              <Text className={styles.helperTitle}>这次没有顺利生成报告</Text>
-              <Text className={styles.helperText}>{generationError}</Text>
-              <View className={styles.buttonGroup}>
-                <Button className={styles.secondaryButton} onClick={() => setGenerationError('')}>
-                  重新输入后再试
+            <View className={styles.errorBlock}>
+              <Text className={styles.errorTitle}>这次没生成出来</Text>
+              <Text className={styles.errorText}>{generationError}</Text>
+              <View className={styles.errorActions}>
+                <Button className={styles.ghostButton} onClick={() => setGenerationError('')}>
+                  重新输入
                 </Button>
-                <Button className={styles.secondaryButton} onClick={() => Taro.navigateTo({ url: '/pages/report/index?mock=1' })}>
-                  先看模板报告
+                <Button className={styles.ghostButton} onClick={() => Taro.navigateTo({ url: '/pages/report/index?mock=1' })}>
+                  看模板报告
                 </Button>
               </View>
             </View>
           ) : null}
-          <View className={styles.helperBlock}>
-            <Text className={styles.helperTitle}>如何获得公众号文章链接</Text>
-            <Text className={styles.helperText}>在公众号文章右上角点“复制链接”，回到这里长按输入框粘贴即可。</Text>
-            <Text className={styles.helperText}>当前版本只支持公众号文章链接，不支持直接转发文章到小程序。</Text>
-          </View>
+        </View>
+
+        <View className={styles.notes}>
+          <Text className={styles.notesTitle}>操作三步</Text>
+          {STEPS.map((step, index) => (
+            <View key={step} className={styles.noteRow}>
+              <Text className={styles.noteIndex}>{String(index + 1).padStart(2, '0')}</Text>
+              <Text className={styles.noteText}>{step}</Text>
+            </View>
+          ))}
+          <Text className={styles.noteFoot}>报告由模型生成，仅供参考，不构成投资建议。</Text>
         </View>
       </View>
     </View>

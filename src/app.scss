@@ -2,12 +2,12 @@
 @use '@/styles/variables.scss' as *;
 
 page {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB',
-    sans-serif;
+  font-family: $font-sans;
   font-size: $font-size-md;
   line-height: $line-height-normal;
   color: $color-text-primary;
-  background: linear-gradient(180deg, #fdf8eb 0%, $color-bg-page 100%);
+  background: $color-bg-page;
+  -webkit-font-smoothing: antialiased;
 }
 
 view,

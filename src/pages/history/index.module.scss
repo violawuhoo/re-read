@@ -2,57 +2,173 @@
 
 .page {
   min-height: 100vh;
-  padding: 24rpx $page-padding 48rpx;
+  padding: 40rpx $page-padding 72rpx;
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
-  background: linear-gradient(180deg, #fffdf7 0%, #fffaf0 100%);
+  gap: 28rpx;
+  background: $color-bg-page;
 }
 
-.noticeCard,
-.emptyCard,
-.reportCard {
-  padding: 30rpx 28rpx;
-  border-radius: $radius-lg;
-  background: rgba(255, 255, 255, 0.9);
+/* ---------- 页头 ---------- */
+.header {
   display: flex;
-  flex-direction: column;
-  gap: 18rpx;
-  box-shadow: 0 6rpx 18rpx rgba(141, 107, 22, 0.05);
-}
-
-.noticeTitle,
-.emptyTitle,
-.reportTitle {
-  font-size: 28rpx;
-  color: $color-text-primary;
-  font-weight: $font-weight-semibold;
-  line-height: 1.55;
-}
-
-.noticeText,
-.emptyText,
-.reportDesc {
-  font-size: 24rpx;
-  color: $color-text-secondary;
-  line-height: 1.75;
-}
-
-.reportList {
-  width: 100%;
-  max-width: $max-content-width;
-  display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 16rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid $color-border;
 }
 
-.actionButton {
-  @include button-reset;
-  width: 100%;
-  height: 64rpx;
-  padding: 0 26rpx;
-  background: rgba($color-primary, 0.18);
-  color: $color-primary-dark;
-  box-shadow: 0 4rpx 12rpx rgba(141, 107, 22, 0.05);
-  border-radius: $radius-button;
+.headerTitle {
+  font-family: $font-serif;
+  font-size: 44rpx;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: $color-text-primary;
+}
+
+.headerCount {
+  @include tabular;
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- 空态 / 错误 ---------- */
+.stateCard {
+  @include paper(30rpx);
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.stateTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.stateText {
+  font-size: $font-size-xs;
+  line-height: 1.8;
+  color: $color-text-secondary;
+}
+
+.stateAction {
+  margin-top: 6rpx;
+  font-size: $font-size-xs;
+  color: $color-primary;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 条目 ---------- */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry {
+  display: flex;
+  gap: 24rpx;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid $color-divider;
+  transition: opacity $transition-fast;
+
+  &:active {
+    opacity: 0.6;
+  }
+}
+
+.entrySide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 92rpx;
+  padding-top: 4rpx;
+}
+
+.entryDate {
+  @include tabular;
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  letter-spacing: 0.02em;
+}
+
+.entryYear {
+  @include tabular;
+  font-size: 18rpx;
+  color: $color-text-tertiary;
+  letter-spacing: 0.08em;
+}
+
+.entryMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.entryTitle {
+  font-family: $font-serif;
+  font-size: 30rpx;
+  line-height: 1.55;
+  color: $color-text-primary;
+  @include text-ellipsis-multi(2);
+}
+
+.entryClaim {
+  font-size: 22rpx;
+  line-height: 1.75;
+  color: $color-text-secondary;
+  @include text-ellipsis-multi(2);
+}
+
+.entryFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 4rpx;
+}
+
+.entryTag {
+  font-size: 19rpx;
+  letter-spacing: 0.06em;
+  color: $color-text-tertiary;
+  border: 1rpx solid $color-border;
+  border-radius: $radius-xs;
+  padding: 3rpx 10rpx;
+}
+
+.entryArrow {
+  font-size: 20rpx;
+  color: $color-primary;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 模板入口 ---------- */
+.templateRow {
+  margin-top: 8rpx;
+  padding: 24rpx;
+  border: 1rpx dashed $color-border-strong;
+  border-radius: $radius-md;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.templateLabel {
+  font-size: 21rpx;
+  letter-spacing: 0.1em;
+  color: $color-text-secondary;
+}
+
+.templateHint {
+  font-size: 22rpx;
+  color: $color-primary;
 }

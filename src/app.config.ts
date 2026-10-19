@@ -2,16 +2,16 @@ export default defineAppConfig({
   pages: ['pages/index/index', 'pages/history/index', 'pages/profile/index', 'pages/report/index'],
   window: {
     backgroundTextStyle: 'dark',
-    backgroundColor: '#f5f7fb',
-    navigationBarBackgroundColor: '#f5f7fb',
+    backgroundColor: '#f6f4ee',
+    navigationBarBackgroundColor: '#f6f4ee',
     navigationBarTitleText: 'Re-Read',
     navigationBarTextStyle: 'black'
   },
   tabBar: {
-    color: '#86909c',
-    selectedColor: '#165dff',
+    color: '#7c857e',
+    selectedColor: '#1f4b3f',
     backgroundColor: '#ffffff',
-    borderStyle: 'black',
+    borderStyle: 'white',
     list: [
       {
         pagePath: 'pages/index/index',

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Image, Text, View } from '@tarojs/components';
+import { Button, Text, View } from '@tarojs/components';
 import Taro, { useRouter } from '@tarojs/taro';
 import { mockTemplateReport } from '@/data/mock-report';
 import { fetchReportById } from '@/services/reread';
@@ -46,6 +46,11 @@ const SECTION_TITLE_OVERRIDES: Record<string, string> = {
   overseas: '海外相关工作',
   domestic: '国内相关工作',
   signals: '验证信号'
+};
+
+const sectionNumber = (key: string) => {
+  const index = SECTION_ORDER.indexOf(key);
+  return index >= 0 ? String(index + 1).padStart(2, '0') : '··';
 };
 
 const ReportPage: React.FC = () => {
@@ -428,6 +433,7 @@ const ReportPage: React.FC = () => {
   const renderSectionCard = (section: AnalysisSection) => (
     <View key={section.key} className={styles.sectionCard}>
       <View className={styles.sectionHeaderRow}>
+        <Text className={styles.sectionNumber}>{sectionNumber(section.key)}</Text>
         <Text className={styles.subsectionTitle}>{SECTION_TITLE_OVERRIDES[section.key] || section.title}</Text>
         {section.highlight && section.key !== 'claim' ? <Text className={styles.highlightText}>{section.highlight}</Text> : null}
       </View>
@@ -514,10 +520,30 @@ const ReportPage: React.FC = () => {
   return (
     <View className={styles.page}>
       <View className={styles.heroCard}>
-        <Text className={styles.heroEyebrow}>公众号文章解读</Text>
-        <Image className={styles.cover} src={report.cover} mode='aspectFill' onError={(error: unknown) => console.error('[ReportPage] image failed', error)} />
+        <Text className={styles.heroEyebrow}>解读报告 / {report.articleType}</Text>
         <Text className={styles.title}>{report.title}</Text>
-        <Text className={styles.desc}>{report.subtitle}</Text>
+        <View className={styles.judgement}>
+          <View className={styles.judgementBar} />
+          <Text className={styles.desc}>{report.subtitle}</Text>
+        </View>
+        <View className={styles.heroMetrics}>
+          <View className={styles.heroMetric}>
+            <Text className={styles.heroMetricLabel}>可信度</Text>
+            <Text className={styles.heroMetricValue}>{report.meta.credibility || '—'}</Text>
+          </View>
+          <View className={styles.heroMetric}>
+            <Text className={styles.heroMetricLabel}>夸大程度</Text>
+            <Text className={styles.heroMetricValue}>{report.meta.hypeLevel || '—'}</Text>
+          </View>
+          <View className={styles.heroMetric}>
+            <Text className={styles.heroMetricLabel}>技术成熟</Text>
+            <Text className={styles.heroMetricValue}>{report.meta.trl || '—'}</Text>
+          </View>
+          <View className={styles.heroMetric}>
+            <Text className={styles.heroMetricLabel}>领域阶段</Text>
+            <Text className={styles.heroMetricValue}>{report.meta.fieldStage || '—'}</Text>
+          </View>
+        </View>
       </View>
 
       <View className={styles.card}>
@@ -580,10 +606,15 @@ const ReportPage: React.FC = () => {
         )}
       </View>
 
-      {(isStructuredReport ? groupedSections : []).map((group) => (
+      {(isStructuredReport ? groupedSections : []).map((group, groupIndex) => (
         <View key={group.key} className={styles.card}>
-          <Text className={styles.sectionTitle}>{group.title}</Text>
-          <Text className={styles.groupDesc}>{group.description}</Text>
+          <View className={styles.groupHead}>
+            <Text className={styles.groupIndex}>{String(groupIndex + 1).padStart(2, '0')}</Text>
+            <View className={styles.groupTitleWrap}>
+              <Text className={styles.groupTitle}>{group.title}</Text>
+              <Text className={styles.groupDesc}>{group.description}</Text>
+            </View>
+          </View>
           <View className={styles.stack}>
             {group.key === 'source-analysis' ? (
               <>
