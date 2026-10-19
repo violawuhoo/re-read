@@ -18,24 +18,6 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const MODULE_REQUEST_TIMEOUT_MS = 45000;
 const MODULE_RETRYABLE_STATUS = new Set([408, 409, 429, 500, 502, 503, 504]);
 let kimiWebSearchUnsupported = false;
-const DEBUG_ENV_PATH = '.dbg/report-loading-spinner.env';
-
-// #region debug-point B:agent-module-events
-const reportDebugEvent = (hypothesisId, location, msg, data = {}) => {
-  let url = 'http://127.0.0.1:7777/event';
-  let sessionId = 'report-loading-spinner';
-  try {
-    const envText = require('fs').readFileSync(DEBUG_ENV_PATH, 'utf8');
-    url = envText.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || url;
-    sessionId = envText.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || sessionId;
-  } catch {}
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, runId: 'post-fix', hypothesisId, location, msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
-  }).catch(() => {});
-};
-// #endregion
 
 const MODULE_INPUT_LIMITS = {
   P0: 3200,
@@ -88,7 +70,7 @@ const buildMockResult = ({ content = '' }) => {
     hypeLevel,
     toVcRisk,
     innovationType,
-    reportStatus: '已通过 mock SOP Agent 完成结构化判断',
+    reportStatus: '未接通模型：本次展示内置样例，不是这篇文章的真实解读',
     signals,
     missingItems,
     followups,
@@ -776,16 +758,7 @@ const callModule = async (moduleKey, systemPrompt, userMessage) => {
     let finishReason = null;
 
     try {
-      // #region debug-point B:module-attempt-start
-      reportDebugEvent('B', 'backend/agent-adapter.js:callModule:start', 'module attempt start', {
-        moduleKey,
-        attempt: attempt + 1,
-        retries,
-        useWebSearch,
-        timeoutMs: attemptTimeoutMs,
-        maxTokens: attemptMaxTokens
-      });
-      // #endregion
+
       while (finishReason === null || finishReason === 'tool_calls') {
         const data = await requestChatCompletion({ messages, maxTokens: attemptMaxTokens, useWebSearch, timeoutMs: attemptTimeoutMs });
         const choice = data?.choices?.[0];
@@ -824,13 +797,7 @@ const callModule = async (moduleKey, systemPrompt, userMessage) => {
             throw new Error('LLM response missing required fields');
           }
 
-          // #region debug-point B:module-degraded-success
-          reportDebugEvent('B', 'backend/agent-adapter.js:callModule:degraded', 'module completed with degraded output', {
-            moduleKey,
-            attempt: attempt + 1,
-            finishReason
-          });
-          // #endregion
+
           return {
             data: normalized,
             error: describeModuleFailure(moduleKey, '输出字段缺失，已按默认值补齐'),
@@ -838,13 +805,7 @@ const callModule = async (moduleKey, systemPrompt, userMessage) => {
           };
         }
 
-        // #region debug-point B:module-success
-        reportDebugEvent('B', 'backend/agent-adapter.js:callModule:success', 'module attempt success', {
-          moduleKey,
-          attempt: attempt + 1,
-          finishReason
-        });
-        // #endregion
+
         return {
           data: normalized,
           error: null,
@@ -863,15 +824,7 @@ const callModule = async (moduleKey, systemPrompt, userMessage) => {
         error: error.message,
         willRetry: canRetry
       });
-      // #region debug-point B:module-attempt-failed
-      reportDebugEvent('B', 'backend/agent-adapter.js:callModule:failed', 'module attempt failed', {
-        moduleKey,
-        attempt: attempt + 1,
-        retries,
-        error: error.message,
-        willRetry: canRetry
-      });
-      // #endregion
+
 
       if (canRetry) {
         await sleep(300 * (attempt + 1));
@@ -883,13 +836,7 @@ const callModule = async (moduleKey, systemPrompt, userMessage) => {
 
   console.error('[AgentAdapter] module call failed', { moduleKey, error: lastError?.message });
   const fallbackReason = describeModuleFailure(moduleKey, lastError?.message || '模块执行失败');
-  // #region debug-point B:module-fallback
-  reportDebugEvent('B', 'backend/agent-adapter.js:callModule:fallback', 'module fallback generated', {
-    moduleKey,
-    error: lastError?.message || '',
-    fallbackReason
-  });
-  // #endregion
+
   return {
     data: buildModuleFallback(moduleKey, fallbackReason),
     error: fallbackReason,
@@ -940,13 +887,7 @@ const runStructuredPipeline = async (payload, onProgress) => {
   const rawArticleContent = payload.content || payload.articleUrl || '';
   const getModuleContent = (moduleKey) => trimArticleContent(rawArticleContent, MODULE_INPUT_LIMITS[moduleKey] || 8000);
   const moduleErrors = {};
-  // #region debug-point B:pipeline-start
-  reportDebugEvent('B', 'backend/agent-adapter.js:runStructuredPipeline:start', 'structured pipeline start', {
-    provider: runtimeConfig?.llm?.provider || '',
-    model: runtimeConfig?.llm?.model || '',
-    contentLength: rawArticleContent.length
-  });
-  // #endregion
+
 
   onProgress?.('内容类型识别', 30);
   const p0Promise = callModule('P0', P0_SYSTEM_PROMPT, buildP0UserMsg(getModuleContent('P0')));
@@ -1019,13 +960,7 @@ const runStructuredPipeline = async (payload, onProgress) => {
     degradedModuleCount > 0
       ? `已完成 SOP 六模块分析 · ${p0.type || 'A+C混合'} · 部分模块降级(${degradedModuleCount})`
       : `已完成 SOP 六模块分析 · ${p0.type || 'A+C混合'}`;
-  // #region debug-point B:pipeline-finished
-  reportDebugEvent('B', 'backend/agent-adapter.js:runStructuredPipeline:done', 'structured pipeline finished', {
-    degradedModuleCount,
-    moduleErrors,
-    reportStatus
-  });
-  // #endregion
+
 
   return {
     adapter: runtimeConfig.llm.provider,

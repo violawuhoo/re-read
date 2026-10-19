@@ -7,22 +7,7 @@ import { getReportById } from '@/data/report';
 import { AnalysisSection, AnalysisStep, ReferenceItem, ReportRecord, TimelineItem } from '@/types/reread';
 import styles from './index.module.scss';
 
-// #region debug-point A:report-page-debug
-const reportPageDebug = (msg: string, data: Record<string, unknown> = {}) =>
-  fetch('http://127.0.0.1:7778/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'insert-before-error',
-      runId: 'pre-fix',
-      hypothesisId: 'A',
-      location: 'src/pages/report/index.tsx',
-      msg: `[DEBUG] ${msg}`,
-      data,
-      ts: Date.now()
-    })
-  }).catch(() => {});
-// #endregion
+
 
 const SECTION_ORDER = ['quality', 'hype', 'team', 'claim', 'innovation', 'bottleneck', 'industrial', 'timeline', 'overseas', 'domestic', 'opportunity', 'signals'];
 const SECTION_GROUPS = [
@@ -79,15 +64,7 @@ const ReportPage: React.FC = () => {
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    // #region debug-point B:fallback-report-sync
-    reportPageDebug('fallback report synced', {
-      reportId: fallbackReport?.id || '',
-      title: fallbackReport?.title || '',
-      sectionCount: fallbackReport?.sections?.length || 0,
-      referenceCount: fallbackReport?.references?.length || 0,
-      isMockPreview
-    });
-    // #endregion
+
     setReport(fallbackReport);
     setRemoteStatusMessage('');
     setIsRemoteLoading(Boolean(!isMockPreview && router.params.id && !fallbackReport));
@@ -96,13 +73,7 @@ const ReportPage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    // #region debug-point C:load-remote-entry
-    reportPageDebug('load remote report effect entered', {
-      isMockPreview,
-      reportId: router.params.id || '',
-      hasReportId: Boolean(router.params.id)
-    });
-    // #endregion
+
 
     const loadRemoteReport = async () => {
       if (isMockPreview || !router.params.id) {
@@ -114,20 +85,7 @@ const ReportPage: React.FC = () => {
       setRemoteStatusMessage('');
       const remoteReport = await fetchReportById(router.params.id);
       if (remoteReport && isMounted) {
-        // #region debug-point D:remote-report-loaded
-        reportPageDebug('remote report loaded', {
-          reportId: remoteReport.id,
-          title: remoteReport.title,
-          sectionCount: remoteReport.sections?.length || 0,
-          referenceCount: remoteReport.references?.length || 0,
-          pipelineCount: remoteReport.pipeline?.length || 0,
-          timelineCount: remoteReport.timeline?.length || 0,
-          overseasCount: remoteReport.overseasWorks?.length || 0,
-          domesticCount: remoteReport.chinaTeams?.length || 0,
-          opportunityCount: remoteReport.opportunities?.length || 0,
-          signalCount: remoteReport.investmentSignals?.length || 0
-        });
-        // #endregion
+
         setReport(remoteReport);
         setRemoteStatusMessage('');
         setIsRemoteLoading(false);
@@ -152,12 +110,7 @@ const ReportPage: React.FC = () => {
     });
 
     return () => {
-      // #region debug-point E:load-remote-cleanup
-      reportPageDebug('load remote report effect cleanup', {
-        reportId: router.params.id || '',
-        isMockPreview
-      });
-      // #endregion
+
       isMounted = false;
     };
   }, [fallbackReport, isMockPreview, reloadToken, router.params.id]);
@@ -166,20 +119,7 @@ const ReportPage: React.FC = () => {
     if (!report) {
       return;
     }
-    // #region debug-point F:render-shape
-    reportPageDebug('report render shape', {
-      reportId: report.id,
-      title: report.title,
-      sectionKeys: (report.sections || []).map((section) => section.key),
-      pipelineKeys: (report.pipeline || []).map((step) => step.key),
-      referenceIds: (report.references || []).map((reference) => reference.id),
-      timelineKeys: (report.timeline || []).map((item) => `${item.year}-${item.title}`),
-      overseasKeys: (report.overseasWorks || []).map((work) => `${work.name}-${work.date}`),
-      domesticKeys: (report.chinaTeams || []).map((team) => `${team.name}-${team.attribute}`),
-      opportunityKeys: (report.opportunities || []).map((item) => `${item.scope}-${item.direction}`),
-      signalKeys: (report.investmentSignals || []).map((item) => `${item.timeWindow}-${item.trigger}`)
-    });
-    // #endregion
+
   }, [report]);
 
   const degradedModuleCount = useMemo(() => {
@@ -583,11 +523,18 @@ const ReportPage: React.FC = () => {
       <View className={styles.card}>
         <Text className={styles.sectionTitle}>报告状态</Text>
         <View className={styles.statusTagRow}>
-          <Text className={styles.statusTag}>{isMockPreview ? '模板报告' : '真实报告'}</Text>
+          <Text className={styles.statusTag}>{isMockPreview ? '模板报告' : report.isSample ? '样例数据' : 'AI 生成报告'}</Text>
           {degradedModuleCount > 0 ? <Text className={styles.statusTag}>部分模块降级</Text> : null}
           {remoteStatusMessage ? <Text className={styles.statusTag}>本地兜底展示</Text> : null}
         </View>
         <Text className={styles.sectionSummary}>{report.status || '已生成结构化报告。'}</Text>
+        {report.isSample && !isMockPreview ? (
+          <Text className={styles.noticeText}>
+            本次没有接通真实模型，下面是内置样例内容，与这篇文章无关，仅用于检查报告结构。
+          </Text>
+        ) : null}
+        <Text className={styles.noticeText}>
+          本报告由人工智能模型生成，仅供参考，不构成任何投资建议。</Text>
         {remoteStatusMessage ? <Text className={styles.noticeText}>{remoteStatusMessage}</Text> : null}
         {pageWarnings.map((warning) => (
           <Text key={warning} className={styles.noticeText}>

@@ -1,148 +1,78 @@
 # Re-Read
 
-`Re-Read` 是一个面向一级市场 AI4S 投资人的微信小程序，用于在“读完公众号之后、读原文之前”快速生成一份标准化结构解读。
+面向一级市场 AI4S 投资人的公众号深度解读工具：读完公众号、读原文之前，先得到一版结构化判断。
 
-当前版本已经包含：
+当前版本按**个人自用**形态交付：只上体验版，不发布，因此不涉及备案、类目与提审。
 
-- 微信小程序前端
-- Node 原生 `http` 后端
-- `P0 -> M1 -> M2 -> M3 -> M4 -> M5` 六模块顺序分析链路
-- 固定 12 个 section 的完整报告页
-- 零 token 的模板报告验收入口
-- mock 模版与真实输出共用同一套报告结构
+## 架构
 
-## 当前能力
+```
+微信小程序（Taro 4 + React 18）
+  └─ wx.cloud.callContainer（免域名校验，不用备案）
+       └─ 微信云托管容器（backend/，Node 原生 http）
+            ├─ 云开发数据库：reports / tasks / usage
+            └─ Kimi / 豆包：六模块顺序分析
+```
 
-- 支持导入 `mp.weixin.qq.com` 公众号文章链接
-- 后端按六个模块顺序生成结构化 JSON
-- 报告输出固定遵循 [report-output-format.md](file:///Users/violawu/Documents/trae_projects/Re-Read/docs/report-output-format.md)
-- `backend/report-engine.js` 已按 `src/data/mock-report.ts` 的最终模版同步真实输出映射
-- 前端完整报告页按固定章节顺序展示：
-  - `quality`
-  - `hype`
-  - `team`
-  - `claim`
-  - `innovation`
-  - `bottleneck`
-  - `industrial`
-  - `timeline`
-  - `overseas`
-  - `domestic`
-  - `opportunity`
-  - `signals`
+- 前端：`src/`（解读 / 历史 / 我的 / 报告四个页面）
+- 后端：`backend/`（Dockerfile 已带，可直接部署到云托管）
+- 部署：**[docs/personal-deploy.md](docs/personal-deploy.md)**
+- 报告格式：`docs/report-output-format.md`
 
-## 项目结构
+## 分析链路
 
-- 前端：`src/`
-- 后端：`backend/`
-- 报告格式规范：`docs/report-output-format.md`
-- mock 报告生成脚本：`scripts/generate-mock-report.js`
-- 前端模板报告数据：`src/data/mock-report.ts`
+`P0 分类 → M1 信源质量 → M2 团队/主张/创新 → M3 瓶颈/TRL → M4 时间线与国际对标 → M5 机会与信号`
 
-## 本地安装
+- 单模块独立超时、重试、JSON 修复，失败按保守路径降级，不阻断整份报告
+- M4 会带联网检索
+- 报告固定 12 章节，前后端共用同一套结构
 
-在项目根目录执行：
+## 本地运行
 
 ```bash
 npm install --legacy-peer-deps
+
+# 后端
+cd backend && cp .env.example .env   # 填模型 key
+npm install && node server.js        # 默认 http://127.0.0.1:8787
+
+# 前端（走本地接口，手机与电脑同一 WiFi）
+TARO_APP_API_BASE=http://192.168.1.8:8787 npm run build:weapp
 ```
 
-如果你本机的 Taro 缓存目录权限有问题，后续运行命令时可统一加：
+不设 `TARO_APP_API_BASE` 时默认走云托管：
 
 ```bash
-HOME=/Users/violawu/Documents/trae_projects/Re-Read
+TARO_APP_CLOUD_ENV=reread-3gxxxxxx TARO_APP_CLOUD_SERVICE=reread-api npm run build:weapp
 ```
 
-## 启动前端小程序
+## 环境变量
 
-开发模式：
+见 [backend/.env.example](backend/.env.example)。几个关键项：
+
+| 变量 | 作用 |
+| --- | --- |
+| `REREAD_STORE` | `cloud` 用云数据库，`file` 用本地 JSON（仅调试） |
+| `TCB_ENV` | 云开发环境 id |
+| `REREAD_ALLOWED_OPENIDS` | 只允许这些 openid 调用，自用务必填 |
+| `REREAD_REQUIRE_OPENID` | 填 `1` 则必须带微信身份 |
+| `REREAD_DAILY_LIMIT` | 每日额度，失败会退回 |
+
+## 两个必须知道的约定
+
+1. **没接通模型时会明确标成「样例」**。报告 `isSample=true`，页面顶部提示"与这篇文章无关"，不再用样例冒充真实解读。
+2. **首页不做剪贴板读取**。已移除 `getClipboardData`，改为输入框长按粘贴，避免隐私接口声明。
+
+## 测试
 
 ```bash
-cd /Users/violawu/Documents/trae_projects/Re-Read
-HOME=/Users/violawu/Documents/trae_projects/Re-Read npm run dev:weapp
+npm run test:baseline   # report-engine 结构与降级文案
 ```
 
-生产构建：
+## 免 token 验收报告版式
 
 ```bash
-cd /Users/violawu/Documents/trae_projects/Re-Read
-HOME=/Users/violawu/Documents/trae_projects/Re-Read npm run build:weapp
+npm run mock:report     # 生成 .runtime-data/mock-report-preview.json
 ```
 
-然后用微信开发者工具导入项目：
-
-- 优先导入项目根目录：`/Users/violawu/Documents/trae_projects/Re-Read`
-- 如果工具需要编译产物目录，也可导入：`/Users/violawu/Documents/trae_projects/Re-Read/dist`
-
-## 启动后端
-
-```bash
-cd /Users/violawu/Documents/trae_projects/Re-Read
-node backend/server.js
-```
-
-默认后端地址：
-
-- `http://127.0.0.1:8787/health`
-
-后端详细说明见 [backend/README.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/README.md)。
-
-## 真实模型配置
-
-复制环境变量模板：
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-当前支持：
-
-- `Kimi / Moonshot`
-- `豆包 / Ark`
-
-Kimi 快速接入见 [kimi.quickstart.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/kimi.quickstart.md)。
-
-## 模板报告验收
-
-如果只是验收报告格式，不想消耗 token，可以用项目内置 mock 报告。
-
-先在本地生成一份模板报告：
-
-```bash
-npm run mock:report
-```
-
-生成结果默认写入：
-
-- `.runtime-data/mock-report-preview.json`
-
-前端还内置了一个固定查看入口：
-
-- 页面路由：`/pages/report/index?mock=1`
-- 首页按钮：`查看模板报告`
-
-这个入口不会请求后端，也不会消耗模型 token，适合做：
-
-- 报告模板验收
-- 前端样式联调
-- `timeline / references / tags / subtitle` 映射检查
-
-当前三条链路已经对齐到同一份模版：
-
-- 前端固定模版：`src/data/mock-report.ts`
-- 后端 mock 样例：`backend/mock-report-sample.js`
-- 真实报告装配：`backend/report-engine.js`
-
-## 当前推荐联调方式
-
-1. 先跑 `npm run mock:report`
-2. 用小程序打开 `查看模板报告`
-3. 核对完整报告页展示
-4. 再启动后端和真实模型，测试公众号链接分析
-
-## 重要文档
-
-- 总体后端说明：[backend/README.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/README.md)
-- Kimi 接入说明：[kimi.quickstart.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/kimi.quickstart.md)
-- 报告格式规范：[report-output-format.md](file:///Users/violawu/Documents/trae_projects/Re-Read/docs/report-output-format.md)
-- 生产部署说明：[deploy.production.md](file:///Users/violawu/Documents/trae_projects/Re-Read/backend/deploy.production.md)
+小程序内打开「历史 → 查看模板报告」，或直接访问 `/pages/report/index?mock=1`，不调后端、不消耗额度。

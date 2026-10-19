@@ -76,14 +76,21 @@ const resolveModel = (provider, model) => {
   return '';
 };
 
+const parseOpenidList = (value = '') =>
+  String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 const getRuntimeConfig = () => {
   const baseUrl = process.env.REREAD_LLM_BASE_URL || '';
   const provider = detectProvider(baseUrl);
   const model = resolveModel(provider, process.env.REREAD_LLM_MODEL || '');
 
   return {
-    host: process.env.REREAD_HOST || '127.0.0.1',
-    port: Number(process.env.REREAD_PORT || 8787),
+    // 云托管会注入 PORT，本地默认 8787
+    host: process.env.REREAD_HOST || '0.0.0.0',
+    port: Number(process.env.PORT || process.env.REREAD_PORT || 8787),
     llm: {
       enabled: Boolean(baseUrl && process.env.REREAD_LLM_API_KEY && model),
       baseUrl,
@@ -92,6 +99,11 @@ const getRuntimeConfig = () => {
       apiKeyConfigured: Boolean(process.env.REREAD_LLM_API_KEY),
       temperature: Number(process.env.REREAD_LLM_TEMPERATURE || 0.2)
     },
+    // 自用保护：填了白名单就只允许这些 openid 调用，留空则不做限制（仅本地调试）
+    allowedOpenids: parseOpenidList(process.env.REREAD_ALLOWED_OPENIDS),
+    requireOpenid: process.env.REREAD_REQUIRE_OPENID === '1',
+    dailyLimit: Number(process.env.REREAD_DAILY_LIMIT || 20),
+    storeMode: process.env.REREAD_STORE || (process.env.TCB_ENV ? 'cloud' : 'file'),
     envFilePath
   };
 };

@@ -18,7 +18,12 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     sourceRoot: 'src',
     outputRoot: process.env.TARO_OUTPUT_DIR || 'dist',
     plugins: ['@tarojs/plugin-html'],
-    defineConstants: {},
+    // 构建期注入运行环境配置，避免在小程序里出现 process 未定义
+    defineConstants: {
+      'process.env.TARO_APP_CLOUD_ENV': JSON.stringify(process.env.TARO_APP_CLOUD_ENV || ''),
+      'process.env.TARO_APP_CLOUD_SERVICE': JSON.stringify(process.env.TARO_APP_CLOUD_SERVICE || 'reread-api'),
+      'process.env.TARO_APP_API_BASE': JSON.stringify(process.env.TARO_APP_API_BASE || ''),
+    },
     copy: {
       patterns: [],
       options: {},

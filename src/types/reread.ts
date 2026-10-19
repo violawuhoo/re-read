@@ -96,6 +96,9 @@ export interface ReportRecord {
   mode: string;
   generatedAt: string;
   status: string;
+  /** 未接通模型时后端回退到内置样例，前端必须明确标出 */
+  isSample?: boolean;
+  ownerOpenid?: string;
   tags: string[];
   meta: ReportMeta;
   articleSnapshot: ArticleSnapshot;
@@ -146,4 +149,12 @@ export interface AnalysisTaskRecord {
   message: string;
   reportId?: string;
   errorCode?: string;
+}
+
+export interface QuotaInfo {
+  day: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  allowed?: boolean;
 }

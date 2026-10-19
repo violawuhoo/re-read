@@ -1,0 +1,16 @@
+{
+  "name": "reread-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Re-Read 后端：六模块解读链路 + 任务队列 + 额度",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.7"
+  }
+}

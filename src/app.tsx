@@ -1,19 +1,16 @@
-import React, { PropsWithChildren, useEffect } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 import { useDidHide, useDidShow } from '@tarojs/taro';
+import { initCloud } from '@/config/runtime';
 import './app.scss';
 
 function App({ children }: PropsWithChildren) {
   useEffect(() => {
-    console.info('[App] Re-Read app bootstrapped');
+    initCloud();
   }, []);
 
-  useDidShow(() => {
-    console.info('[App] app show');
-  });
+  useDidShow(() => {});
 
-  useDidHide(() => {
-    console.info('[App] app hide');
-  });
+  useDidHide(() => {});
 
   return children;
 }

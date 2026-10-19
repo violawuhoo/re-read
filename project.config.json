@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "dist/",
-  "projectname": "taro_template",
-  "description": "taro_template",
+  "projectname": "re-read",
+  "description": "Re-Read 公众号深度解读（自用版）",
   "appid": "touristappid",
   "setting": {
     "urlCheck": true,

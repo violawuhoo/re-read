@@ -457,7 +457,7 @@ const buildStructuredTags = (agentResult) => {
   return unique(searchKeywords).slice(0, 3);
 };
 
-const buildReportFromPayload = (payload = {}, agentResult = {}) => {
+const buildReportFromPayload = (payload = {}, agentResult = {}, options = {}) => {
   const {
     content = '',
     articleUrl = '',
@@ -479,9 +479,12 @@ const buildReportFromPayload = (payload = {}, agentResult = {}) => {
   const structuredM4 = agentResult.m4 || getModuleData(agentResult, 'M4');
   const structuredM5 = agentResult.m5 || getModuleData(agentResult, 'M5');
 
-  report.id = `${isStructuredAdapter ? 'reread-report' : baseReport.id}-${Date.now()}`;
+  report.id = `${isStructuredAdapter ? 'reread-report' : 'reread-sample'}-${Date.now()}`;
   report.generatedAt = createdAt;
-  report.status = agentResult.reportStatus || (isStructuredAdapter ? '已完成 SOP 六模块分析' : '已通过后端分析引擎生成');
+  report.ownerOpenid = options.ownerOpenid || '';
+  // 没跑通真实模型时用的是内置样例底稿，必须让前端明确标出来，避免以假乱真
+  report.isSample = !isStructuredAdapter;
+  report.status = agentResult.reportStatus || (isStructuredAdapter ? '已完成 SOP 六模块分析' : '本次未接通模型，展示的是内置样例');
   report.articleSnapshot.articleUrl = articleUrl || report.articleSnapshot.articleUrl;
   report.articleSnapshot.sourceName = resolvedSourceName || sourceName || report.articleSnapshot.sourceName;
   report.account = resolvedSourceName || sourceName || report.account;
